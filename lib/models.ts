@@ -1,9 +1,12 @@
 // Talks to the AI models' Web Worker from the page.
 
+import { releaseCanvas } from "./photo";
+
 export type SelectPoint = { x: number; y: number; include: boolean }; // x/y in photo pixels
 
 export type WorkerRequest =
   | { type: "preload" }
+  | { type: "release" }
   | { type: "foreground"; id: number; pixels: Uint8ClampedArray; width: number; height: number }
   | { type: "sam-embed"; id: number; pixels: Uint8ClampedArray; width: number; height: number }
   | { type: "sam-select"; id: number; photoId: number; points: SelectPoint[] };
@@ -33,6 +36,31 @@ let nextId = 1;
 function setStatus(s: ModelStatus) {
   status = s;
   listeners.forEach((l) => l(s));
+  if (s.state !== "loading") setBusy(pending.size > 0);
+}
+
+// If iOS runs out of memory it silently reloads the page. To be able to say
+// what happened, we leave a small "busy" note in sessionStorage (it lives only
+// in this tab, and holds no photo) while the models are working.
+const BUSY_KEY = "sticker-camera-busy";
+function setBusy(on: boolean) {
+  try {
+    if (on) sessionStorage.setItem(BUSY_KEY, "1");
+    else sessionStorage.removeItem(BUSY_KEY);
+  } catch {
+    // storage unavailable (e.g. private mode): just skip the note
+  }
+}
+
+/** True once, if the page was reloaded while the models were working. */
+export function pageRestartedWhileBusy(): boolean {
+  try {
+    const was = sessionStorage.getItem(BUSY_KEY) !== null;
+    sessionStorage.removeItem(BUSY_KEY);
+    return was;
+  } catch {
+    return false;
+  }
 }
 
 function getWorker() {
@@ -47,9 +75,22 @@ function getWorker() {
     else if ("id" in msg && msg.id !== undefined) {
       const job = pending.get(msg.id);
       pending.delete(msg.id);
+      setBusy(pending.size > 0 || status.state === "loading");
       if (msg.type === "error") job?.reject(new Error(msg.message));
       else job?.resolve(msg);
     }
+  };
+  // If the worker itself crashes (e.g. it ran out of memory), fail every
+  // waiting job with a readable message instead of hanging forever, and start
+  // a fresh worker next time.
+  worker.onerror = (e) => {
+    e.preventDefault();
+    const message = "The sticker AI stopped unexpectedly (the phone may be low on memory). Please try again.";
+    pending.forEach((job) => job.reject(new Error(message)));
+    pending.clear();
+    worker?.terminate();
+    worker = null;
+    setStatus({ state: "error", message });
   };
   return worker;
 }
@@ -58,6 +99,7 @@ function getWorker() {
 function request<T extends WorkerResponse>(msg: WorkerRequest & { id: number }, transfer: Transferable[] = []) {
   return new Promise<T>((resolve, reject) => {
     pending.set(msg.id, { resolve: resolve as (m: WorkerResponse) => void, reject });
+    setBusy(true);
     getWorker().postMessage(msg, transfer);
   });
 }
@@ -69,7 +111,13 @@ function photoPixels(photo: HTMLCanvasElement) {
 
 /** Start downloading the models straight away, so they're ready by the time a photo is taken. */
 export function preloadModels() {
+  setBusy(true); // cleared when the models report ready (or fail)
   getWorker().postMessage({ type: "preload" } satisfies WorkerRequest);
+}
+
+/** Frees the current photo's selection data in the worker (e.g. after Retake). */
+export function releaseSelection() {
+  worker?.postMessage({ type: "release" } satisfies WorkerRequest);
 }
 
 export function subscribeModelStatus(l: Listener) {
@@ -130,5 +178,7 @@ function scaleMask(mask: Uint8Array, size: number, width: number, height: number
   const rgba = bctx.getImageData(0, 0, width, height).data;
   const alpha = new Uint8ClampedArray(width * height);
   for (let i = 0; i < alpha.length; i++) alpha[i] = rgba[i * 4 + 3];
+  releaseCanvas(small);
+  releaseCanvas(big);
   return alpha;
 }

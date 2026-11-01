@@ -22,7 +22,7 @@ type Device = "webgpu" | "wasm";
 // ---------- download progress (summed over every file of both models) ----------
 const fileProgress = new Map<string, { loaded: number; total: number }>();
 function onProgress(p: { status: string; name?: string; file?: string; loaded?: number; total?: number }) {
-  if (p.status !== "progress" || !p.file || !p.total) return;
+  if (!reportProgress || p.status !== "progress" || !p.file || !p.total) return;
   fileProgress.set(`${p.name}/${p.file}`, { loaded: p.loaded ?? 0, total: p.total });
   let loaded = 0;
   let total = 0;
@@ -81,58 +81,98 @@ async function loadSam(device: Device) {
   return { model, processor };
 }
 
-type Models = {
-  rmbg: { model: PreTrainedModel; processor: ImageProcessor };
-  sam: { model: SamModel; processor: Processor };
-};
-let loading: Promise<Models> | null = null;
+type Rmbg = { kind: "rmbg"; model: PreTrainedModel; processor: ImageProcessor };
+type Sam = { kind: "sam"; model: SamModel; processor: Processor };
 
-function getModels(): Promise<Models> {
-  if (!loading) {
-    const p: Promise<Models> = pickDevice()
-      .then(async (device) => {
-        // Load one after the other, so the progress bar keeps moving steadily.
-        const sam = await loadSam(device);
-        const rmbg = await loadRmbg(device);
-        return { rmbg, sam };
-      })
-      .then((m) => {
-        post({ type: "ready" });
-        return m;
-      });
-    p.catch(() => (loading = null)); // allow a retry after a failure
-    loading = p;
+// MEMORY: iPhones close (and reload) a page that uses too much memory, and the
+// two models together are too much. So only ONE model is loaded at a time:
+// SAM while you tap, then it is released and RMBG is loaded for the final cut.
+// After the first download both come from the browser cache, so switching
+// costs a few seconds, not a download.
+let device: Device | null = null;
+let active: Rmbg | Sam | null = null;
+let reportProgress = true; // only show the bar for the first-time download
+
+async function release() {
+  releaseSamPhoto();
+  if (active) await active.model.dispose();
+  active = null;
+}
+
+async function useRmbg(): Promise<Rmbg> {
+  if (active?.kind === "rmbg") return active;
+  await release();
+  active = { kind: "rmbg", ...(await loadRmbg(device!)) };
+  return active;
+}
+
+async function useSam(): Promise<Sam> {
+  if (active?.kind === "sam") return active;
+  await release();
+  active = { kind: "sam", ...(await loadSam(device!)) };
+  return active;
+}
+
+// On app open: download (and cache) both models, then keep SAM ready, since
+// tapping is the next thing you'll do.
+let preloading: Promise<void> | null = null;
+function preload() {
+  if (!preloading) {
+    const p = (async () => {
+      device ??= await pickDevice();
+      await useRmbg(); // downloads + caches RMBG...
+      await useSam(); // ...then releases it and loads SAM
+      reportProgress = false;
+      post({ type: "ready" });
+    })();
+    p.catch(() => (preloading = null)); // allow a retry after a failure
+    preloading = p;
   }
-  return loading;
+  return preloading;
 }
 
 // ---------- the work ----------
 
 // SAM works in two steps. The slow step "reads" the whole photo once
 // (embedding). After that, each tap only runs the small, fast decoder.
-// We keep the latest photo's embedding here.
+// We keep the latest photo's embedding here, and free it when done.
 type SamInputs = { original_sizes: [number, number][]; reshaped_input_sizes: [number, number][] };
 let samPhoto: { id: number; inputs: SamInputs; embeddings: Record<string, Tensor> } | null = null;
 
+function releaseSamPhoto() {
+  if (samPhoto) Object.values(samPhoto.embeddings).forEach((t) => t.dispose());
+  samPhoto = null;
+}
+
 async function handle(msg: WorkerRequest) {
-  const { rmbg, sam } = await getModels();
+  await preload();
 
   if (msg.type === "foreground") {
+    const rmbg = await useRmbg(); // also frees SAM and its embedding
     // Photo pixels in, one-channel "how much is this pixel foreground" mask out.
     const image = new RawImage(msg.pixels, msg.width, msg.height, 4).rgb();
     const { pixel_values } = await rmbg.processor(image);
     const outputs = await rmbg.model({ input: pixel_values });
     const result = Object.values(outputs)[0] as Tensor;
-    const mask = result.mul(255).to("uint8").data as Uint8Array;
+    const scaled = result.mul(255);
+    const mask = scaled.to("uint8").data.slice() as Uint8Array;
+    // Free the model's working memory straight away.
+    [pixel_values, scaled, ...(Object.values(outputs) as Tensor[])].forEach((t) => t.dispose());
     post({ type: "foreground", id: msg.id, mask, size: MODEL.inputSize }, [mask.buffer as ArrayBuffer]);
   } else if (msg.type === "sam-embed") {
+    const sam = await useSam();
+    releaseSamPhoto();
     const image = new RawImage(msg.pixels, msg.width, msg.height, 4).rgb();
     const inputs = await sam.processor(image);
     const embeddings = await sam.model.get_image_embeddings(inputs);
+    (inputs.pixel_values as Tensor).dispose();
     samPhoto = { id: msg.id, inputs, embeddings };
     post({ type: "sam-embed", id: msg.id });
   } else if (msg.type === "sam-select") {
-    if (!samPhoto || samPhoto.id !== msg.photoId) throw new Error("Photo not prepared for selection");
+    if (active?.kind !== "sam" || !samPhoto || samPhoto.id !== msg.photoId) {
+      throw new Error("This photo isn't ready for selection any more. Please retake it.");
+    }
+    const sam = active;
     const { inputs, embeddings } = samPhoto;
     // Taps arrive in photo pixels; SAM wants them in its own resized coordinates.
     const [origH, origW] = inputs.original_sizes[0];
@@ -157,7 +197,11 @@ async function handle(msg: WorkerRequest) {
     for (let i = 1; i < scores.length; i++) if (scores[i] > scores[best]) best = i;
     const size = origW * origH;
     const mask = (masks[0].data as Uint8Array).slice(best * size, (best + 1) * size); // 0 or 1 per pixel
+    [input_points, input_labels, outputs.pred_masks, outputs.iou_scores, ...masks].forEach((t: Tensor) => t.dispose());
     post({ type: "sam-select", id: msg.id, mask }, [mask.buffer as ArrayBuffer]);
+  } else if (msg.type === "release") {
+    // Back on the camera: free everything except what the next photo needs.
+    releaseSamPhoto();
   }
 }
 
@@ -168,10 +212,10 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
   const msg = e.data;
   queue = queue.then(async () => {
     try {
-      if (msg.type === "preload") await getModels();
+      if (msg.type === "preload") await preload();
       else await handle(msg);
     } catch (err) {
-      post({ type: "error", id: msg.type === "preload" ? undefined : msg.id, message: String(err) });
+      post({ type: "error", id: "id" in msg ? msg.id : undefined, message: String(err) });
     }
   });
 };

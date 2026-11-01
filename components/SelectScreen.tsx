@@ -2,17 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { prepareSelection, selectObject, type ModelStatus, type SelectPoint } from "@/lib/models";
+import { releaseCanvas } from "@/lib/photo";
 import ModelStatusBar from "./ModelStatusBar";
 
 type Mode = "select" | "add" | "remove";
 
 export default function SelectScreen({
   photo,
+  initialError,
   modelStatus,
   onDone,
   onRetake,
 }: {
   photo: HTMLCanvasElement;
+  initialError?: string;
   modelStatus: ModelStatus;
   onDone: (mask: Uint8Array) => void;
   onRetake: () => void;
@@ -23,19 +26,27 @@ export default function SelectScreen({
   const [points, setPoints] = useState<SelectPoint[]>([]);
   const [mask, setMask] = useState<Uint8Array | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+  const [attempt, setAttempt] = useState(0); // bump to retry preparing the photo
+  const [prepareFailed, setPrepareFailed] = useState(false);
   const latest = useRef(0); // ignore answers to taps that were replaced by newer taps
 
   // Let SAM "read" the photo once. After that, each tap is quick.
   useEffect(() => {
     let cancelled = false;
+    setPhotoId(null);
+    setPrepareFailed(false);
     prepareSelection(photo)
       .then((id) => !cancelled && setPhotoId(id))
-      .catch((e) => !cancelled && setError(String(e)));
+      .catch((e) => {
+        if (cancelled) return;
+        setError(String(e));
+        setPrepareFailed(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, [photo]);
+  }, [photo, attempt]);
 
   // Ask SAM for a new mask whenever the taps change.
   useEffect(() => {
@@ -68,6 +79,7 @@ export default function SelectScreen({
       layer.height = h;
       layer.getContext("2d")!.putImageData(shade, 0, 0);
       ctx.drawImage(layer, 0, 0); // drawImage (unlike putImageData) blends on top
+      releaseCanvas(layer);
     }
     const r = Math.max(w, h) * 0.012;
     for (const p of points) {
@@ -108,7 +120,16 @@ export default function SelectScreen({
       </div>
 
       {!ready && <ModelStatusBar status={modelStatus} />}
-      {error && <p className="select-error">{error}</p>}
+      {error && (
+        <p className="select-error">
+          {error}{" "}
+          {prepareFailed && (
+            <button className="link" onClick={() => (setError(null), setAttempt((a) => a + 1))}>
+              Try again
+            </button>
+          )}
+        </p>
+      )}
 
       <div className="modes" role="radiogroup" aria-label="Tap mode">
         {(

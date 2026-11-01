@@ -10,9 +10,11 @@ type Facing = "environment" | "user"; // rear / front camera
 export default function CameraScreen({
   onPhoto,
   modelStatus,
+  notice,
 }: {
   onPhoto: (photo: HTMLCanvasElement) => void;
   modelStatus: ModelStatus;
+  notice?: string | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [facing, setFacing] = useState<Facing>("environment");
@@ -87,6 +89,7 @@ export default function CameraScreen({
         {cameraError && <p className="camera-error">{cameraError}</p>}
       </div>
 
+      {notice && <p className="notice">{notice}</p>}
       <ModelStatusBar status={modelStatus} />
 
       <div className="controls">

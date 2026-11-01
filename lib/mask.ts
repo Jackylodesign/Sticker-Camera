@@ -30,7 +30,7 @@ export function cutOutSelection(
   if (useRmbg) {
     // Distance of every pixel from SAM's mask, so we can allow a margin around it.
     const margin = Math.max(1, Math.round(SELECTION.edgeMargin * Math.max(w, h)));
-    const dist = new Float64Array(n);
+    const dist = new Float32Array(n);
     for (let i = 0; i < n; i++) dist[i] = samMask[i] ? 0 : 1e20;
     distanceTransform2D(dist, w, h);
     for (let i = 0; i < n; i++) {
@@ -59,8 +59,10 @@ export function cutOutSelection(
  * Output (in place): squared distance from each pixel to the nearest inside pixel.
  * Runs on every column, then every row.
  */
-export function distanceTransform2D(grid: Float64Array, w: number, h: number) {
+export function distanceTransform2D(grid: Float32Array, w: number, h: number) {
   const len = Math.max(w, h);
+  // Small one-row helpers stay in full precision; only the photo-sized grid
+  // uses Float32 (half the memory of Float64, still exact for these distances).
   const f = new Float64Array(len);
   const d = new Float64Array(len);
   const v = new Int32Array(len);

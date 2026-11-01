@@ -5,6 +5,7 @@
 
 import { STYLE, TRIM_ALPHA_THRESHOLD } from "./constants";
 import { distanceTransform2D } from "./mask";
+import { releaseCanvas } from "./photo";
 
 export type StickerStyle = { border: boolean; shadow: boolean };
 
@@ -63,6 +64,7 @@ export function renderSticker(p: PreparedSticker, style: StickerStyle): HTMLCanv
     ctx.shadowOffsetY = p.shadow.offsetY;
   }
   ctx.drawImage(layer, 0, 0);
+  releaseCanvas(layer);
   return out;
 }
 
@@ -107,7 +109,7 @@ function makeBorder(subject: HTMLCanvasElement, radius: number) {
 
   // Squared distance to the nearest subject pixel (alpha >= 50%).
   const INF = 1e20;
-  const dist = new Float64Array(w * h);
+  const dist = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) dist[i] = src[i * 4 + 3] >= 128 ? 0 : INF;
   distanceTransform2D(dist, w, h);
 

@@ -27,3 +27,12 @@ export async function loadImageFile(file: File) {
   bitmap.close();
   return canvas;
 }
+
+/**
+ * Frees a canvas' pixel memory right away. Safari otherwise keeps it until
+ * garbage collection, and on iPhone a few big canvases add up quickly.
+ */
+export function releaseCanvas(canvas: HTMLCanvasElement) {
+  canvas.width = 0;
+  canvas.height = 0;
+}
