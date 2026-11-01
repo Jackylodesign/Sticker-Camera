@@ -28,6 +28,23 @@ export const MODEL = {
   inputSize: 1024,
 } as const;
 
+// SlimSAM: finds the object you tap on. See the PR description for why.
+export const SAM_MODEL = {
+  id: "Xenova/slimsam-77-uniform",
+  dtype: "fp32",
+} as const;
+
+// ---------- Combining the two masks ----------
+export const SELECTION = {
+  // How far (fraction of the photo's longer side) RMBG's soft edges may reach
+  // outside SAM's tapped-object mask. SAM's own edge is a bit rough, so we let
+  // RMBG decide the exact edge within this margin.
+  edgeMargin: 0.01,
+  // If RMBG kept less than this share of the tapped object, RMBG has dropped
+  // it (didn't see it as foreground), so we use SAM's mask alone.
+  minRmbgCoverage: 0.3,
+};
+
 // ---------- Image sizes ----------
 // Photos are scaled down to this longest side before processing.
 // Bigger = sharper sticker, but more memory (iPhones kill tabs that use too much).

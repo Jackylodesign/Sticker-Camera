@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { captureVideoFrame, loadImageFile } from "@/lib/photo";
-import type { ModelStatus } from "@/lib/removeBackground";
+import type { ModelStatus } from "@/lib/models";
 import ModelStatusBar from "./ModelStatusBar";
 
 type Facing = "environment" | "user"; // rear / front camera

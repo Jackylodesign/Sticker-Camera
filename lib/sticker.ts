@@ -4,6 +4,7 @@
 // applied at use time.
 
 import { STYLE, TRIM_ALPHA_THRESHOLD } from "./constants";
+import { distanceTransform2D } from "./mask";
 
 export type StickerStyle = { border: boolean; shadow: boolean };
 
@@ -127,49 +128,6 @@ function makeBorder(subject: HTMLCanvasElement, radius: number) {
   }
   ctx.putImageData(out, 0, 0);
   return border;
-}
-
-// Exact Euclidean distance transform (Felzenszwalb & Huttenlocher), run on
-// every column and then every row. Works in place on squared distances.
-function distanceTransform2D(grid: Float64Array, w: number, h: number) {
-  const n = Math.max(w, h);
-  const f = new Float64Array(n);
-  const d = new Float64Array(n);
-  const v = new Int32Array(n);
-  const z = new Float64Array(n + 1);
-  for (let x = 0; x < w; x++) {
-    for (let y = 0; y < h; y++) f[y] = grid[y * w + x];
-    edt1d(f, d, v, z, h);
-    for (let y = 0; y < h; y++) grid[y * w + x] = d[y];
-  }
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) f[x] = grid[y * w + x];
-    edt1d(f, d, v, z, w);
-    for (let x = 0; x < w; x++) grid[y * w + x] = d[x];
-  }
-}
-
-function edt1d(f: Float64Array, d: Float64Array, v: Int32Array, z: Float64Array, n: number) {
-  let k = 0;
-  v[0] = 0;
-  z[0] = -Infinity;
-  z[1] = Infinity;
-  for (let q = 1; q < n; q++) {
-    let s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
-    while (s <= z[k]) {
-      k--;
-      s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
-    }
-    k++;
-    v[k] = q;
-    z[k] = s;
-    z[k + 1] = Infinity;
-  }
-  k = 0;
-  for (let q = 0; q < n; q++) {
-    while (z[k + 1] < q) k++;
-    d[q] = (q - v[k]) * (q - v[k]) + f[v[k]];
-  }
 }
 
 function hexToRgb(hex: string): [number, number, number] {
