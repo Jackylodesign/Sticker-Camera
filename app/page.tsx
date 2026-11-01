@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import CameraScreen from "@/components/CameraScreen";
+import LiftScreen from "@/components/LiftScreen";
 import ModelStatusBar from "@/components/ModelStatusBar";
 import PreviewScreen from "@/components/PreviewScreen";
 import SelectScreen from "@/components/SelectScreen";
+import { IS_IOS } from "@/lib/constants";
 import { cutOutSelection } from "@/lib/mask";
 import {
   getForegroundAlpha,
@@ -18,7 +20,8 @@ import { prepareSticker, type PreparedSticker } from "@/lib/sticker";
 
 type Screen =
   | { name: "camera" }
-  | { name: "select"; photo: HTMLCanvasElement; error?: string }
+  | { name: "lift"; photo: HTMLCanvasElement } // iPhone/iPad: Apple's "Copy Subject"
+  | { name: "select"; photo: HTMLCanvasElement; error?: string } // other devices: our AI
   | { name: "processing" }
   | { name: "preview"; sticker: PreparedSticker };
 
@@ -27,8 +30,13 @@ export default function Home() {
   const [modelStatus, setModelStatus] = useState<ModelStatus>({ state: "loading", loaded: 0, total: 0 });
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Start downloading the models as soon as the app opens.
+  // Other devices: start downloading our AI models as soon as the app opens.
+  // iPhone/iPad: never load them (Apple's "Copy Subject" does the cut-out).
   useEffect(() => {
+    if (IS_IOS) {
+      setModelStatus({ state: "ready" }); // nothing to download
+      return;
+    }
     if (pageRestartedWhileBusy()) {
       setNotice("The page restarted while making your sticker (the phone ran low on memory). Please try again.");
     }
@@ -49,7 +57,7 @@ export default function Home() {
   };
 
   const retake = () => {
-    releaseSelection();
+    if (!IS_IOS) releaseSelection();
     setScreen({ name: "camera" });
   };
 
@@ -58,10 +66,19 @@ export default function Home() {
       <CameraScreen
         onPhoto={(photo) => {
           setNotice(null);
-          setScreen({ name: "select", photo });
+          setScreen(IS_IOS ? { name: "lift", photo } : { name: "select", photo });
         }}
         modelStatus={modelStatus}
         notice={notice}
+      />
+    );
+  }
+  if (screen.name === "lift") {
+    return (
+      <LiftScreen
+        photo={screen.photo}
+        onSticker={(cutout) => setScreen({ name: "preview", sticker: prepareSticker(cutout) })}
+        onRetake={retake}
       />
     );
   }

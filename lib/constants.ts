@@ -52,10 +52,17 @@ export const IS_MOBILE =
   (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
     (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
+// True on iPhone / iPad (Safari or the home-screen app). There we use Apple's
+// own "Copy Subject" instead of our AI models.
+export const IS_IOS =
+  typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+
 // Photos are scaled down to this longest side before processing.
-// Bigger = sharper sticker, but more memory (iPhones reload a page that uses
-// too much). Both models look at the photo at 1024px anyway.
-export const MAX_PHOTO_SIDE = IS_MOBILE ? 1536 : 2048;
+// Bigger = sharper sticker, but more memory. On Android our models run on the
+// phone, so we keep it smaller there (both models look at 1024px anyway).
+export const MAX_PHOTO_SIDE = IS_MOBILE && !IS_IOS ? 1536 : 2048;
 
 // Pixels with alpha below this (0-255) count as "background" when
 // cropping the sticker tight to the subject.
