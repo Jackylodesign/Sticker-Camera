@@ -2,8 +2,8 @@
 // Running the AI model here keeps the page (buttons, spinners) responsive
 // while the heavy maths happens.
 
-import { AutoModel, AutoProcessor, RawImage, env } from "@huggingface/transformers";
-import type { PreTrainedModel, Processor } from "@huggingface/transformers";
+import { AutoModel, ImageProcessor, RawImage, env } from "@huggingface/transformers";
+import type { PreTrainedModel } from "@huggingface/transformers";
 import { MODEL } from "./constants";
 import type { WorkerRequest, WorkerResponse } from "./removeBackground";
 
@@ -15,7 +15,7 @@ env.allowLocalModels = false;
 const post = (msg: WorkerResponse, transfer: Transferable[] = []) =>
   (self as unknown as Worker).postMessage(msg, transfer);
 
-let loading: Promise<{ model: PreTrainedModel; processor: Processor }> | null = null;
+let loading: Promise<{ model: PreTrainedModel; processor: ImageProcessor }> | null = null;
 
 // Sum download progress across files (the model weights are by far the biggest).
 const fileProgress = new Map<string, { loaded: number; total: number }>();
@@ -33,27 +33,23 @@ function onProgress(p: { status: string; file?: string; loaded?: number; total?:
 
 async function loadModel(device: "webgpu" | "wasm") {
   // RMBG-1.4 has no transformers.js-specific config on the hub, so we pass
-  // it in directly. "custom" tells transformers.js to use a plain model
-  // wrapper, and the processor settings mirror the model's own preprocessing.
+  // it in directly. "custom" tells transformers.js to use a plain model wrapper.
   const model = await AutoModel.from_pretrained(MODEL.id, {
     config: { model_type: "custom" } as never,
     dtype: MODEL.dtype,
     device,
     progress_callback: onProgress,
   });
-  const processor = await AutoProcessor.from_pretrained(MODEL.id, {
-    config: {
-      do_normalize: true,
-      do_pad: false,
-      do_rescale: true,
-      do_resize: true,
-      image_mean: [0.5, 0.5, 0.5],
-      image_std: [1, 1, 1],
-      feature_extractor_type: "ImageFeatureExtractor",
-      resample: 2,
-      rescale_factor: 1 / 255,
-      size: { width: MODEL.inputSize, height: MODEL.inputSize },
-    } as never,
+  // Resize to a 1024x1024 square and scale colours the way RMBG-1.4 expects.
+  const processor = new ImageProcessor({
+    do_normalize: true,
+    do_rescale: true,
+    do_resize: true,
+    image_mean: [0.5, 0.5, 0.5],
+    image_std: [1, 1, 1],
+    resample: 2, // bilinear
+    rescale_factor: 1 / 255,
+    size: { width: MODEL.inputSize, height: MODEL.inputSize },
   });
   return { model, processor };
 }
