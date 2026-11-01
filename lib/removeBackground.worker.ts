@@ -58,13 +58,23 @@ async function loadModel(device: "webgpu" | "wasm") {
   return { model, processor };
 }
 
+// Prefer the GPU (WebGPU) when the browser really has one; otherwise use the
+// CPU (WebAssembly), which works everywhere but is slower. We check for a GPU
+// "adapter" first because a browser can know about WebGPU yet have no usable GPU.
+async function pickDevice(): Promise<"webgpu" | "wasm"> {
+  try {
+    const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+    if (gpu && (await gpu.requestAdapter())) return "webgpu";
+  } catch {
+    // fall through to wasm
+  }
+  return "wasm";
+}
+
 function getModel() {
   if (!loading) {
-    // Prefer the GPU (WebGPU) when the browser has it; fall back to the CPU
-    // (WebAssembly), which works everywhere but is slower.
-    const hasWebGPU = "gpu" in navigator;
-    loading = (hasWebGPU ? loadModel("webgpu") : Promise.reject(new Error("no webgpu")))
-      .catch(() => loadModel("wasm"))
+    loading = pickDevice()
+      .then(loadModel)
       .then((m) => {
         post({ type: "ready" });
         return m;
