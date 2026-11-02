@@ -16,7 +16,7 @@ import {
   subscribeModelStatus,
   type ModelStatus,
 } from "@/lib/models";
-import { startAutoUpload } from "@/lib/outbox";
+import { NO_OUTBOX_MESSAGE, startAutoUpload } from "@/lib/outbox";
 import { prepareSticker, type PreparedSticker } from "@/lib/sticker";
 
 type Screen =
@@ -103,9 +103,13 @@ export default function Home() {
       <PreviewScreen
         sticker={screen.sticker}
         onRetake={retake}
-        onSaved={() => {
+        onSaved={(result) => {
           retake();
-          setNotice("Sticker saved. It uploads in the background. See History.");
+          setNotice(
+            result === "uploaded"
+              ? `Sticker uploaded. ${NO_OUTBOX_MESSAGE}`
+              : "Sticker saved. It uploads in the background. See History.",
+          );
         }}
       />
     );

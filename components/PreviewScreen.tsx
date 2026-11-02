@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { saveSticker } from "@/lib/outbox";
+import { errorMessage, saveSticker } from "@/lib/outbox";
 import { canvasToPngBlob, renderSticker, type PreparedSticker, type StickerStyle } from "@/lib/sticker";
 
 export default function PreviewScreen({
@@ -11,7 +11,7 @@ export default function PreviewScreen({
 }: {
   sticker: PreparedSticker;
   onRetake: () => void;
-  onSaved: () => void;
+  onSaved: (result: "queued" | "uploaded") => void;
 }) {
   const [style, setStyle] = useState<StickerStyle>({ border: true, shadow: true });
   const [url, setUrl] = useState<string | null>(null);
@@ -41,10 +41,9 @@ export default function PreviewScreen({
     setSaving(true);
     setError(null);
     try {
-      await saveSticker(sticker.subject);
-      onSaved();
+      onSaved(await saveSticker(sticker.subject));
     } catch (err) {
-      setError(`Couldn't save: ${String(err)}`);
+      setError(`Couldn't save: ${errorMessage(err)}`);
       setSaving(false);
     }
   };
