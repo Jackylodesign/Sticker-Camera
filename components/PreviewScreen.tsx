@@ -85,7 +85,7 @@ export default function PreviewScreen({
   );
 }
 
-function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+export function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
   return (
     <label className="toggle">
       <span>{label}</span>

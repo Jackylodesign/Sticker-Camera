@@ -67,3 +67,18 @@ export const MAX_PHOTO_SIDE = IS_MOBILE && !IS_IOS ? 1536 : 2048;
 // Pixels with alpha below this (0-255) count as "background" when
 // cropping the sticker tight to the subject.
 export const TRIM_ALPHA_THRESHOLD = 10;
+
+// ---------- Public gallery ----------
+// Public visitors only ever get this small, watermarked copy, never the original.
+export const DISPLAY_MAX_SIDE = 600; // px, longest side of the gallery image
+
+// Grid thumbnails in the Library (owner only), longest side in px.
+export const THUMB_MAX_SIDE = 400;
+
+export const WATERMARK = {
+  text: "© Jacky Lo",
+  color: "rgba(255, 255, 255, 0.6)",
+  outline: "rgba(0, 0, 0, 0.35)", // thin dark edge so it shows on light and dark
+  size: 0.05, // font size, as a fraction of the image's longer side
+  margin: 0.03, // gap from the bottom-right corner, same unit
+};

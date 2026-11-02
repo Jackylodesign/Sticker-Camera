@@ -1,4 +1,4 @@
-// Creates the `stickers` table. Safe to run more than once.
+// Creates the `stickers` table (and adds newer columns). Safe to run more than once.
 // Run: npm run db:setup   (reads DATABASE_URL from .env.local)
 
 import { neon } from "@neondatabase/serverless";
@@ -21,5 +21,8 @@ await sql`
     tags       text[]                    -- reserved for later
   )`;
 await sql`CREATE INDEX IF NOT EXISTS stickers_created_at_idx ON stickers (created_at DESC)`;
+// Stage 3: the small watermarked copy shown in the public gallery (only set
+// while the sticker is public).
+await sql`ALTER TABLE stickers ADD COLUMN IF NOT EXISTS display_pathname text`;
 
 console.log("Database is ready: table `stickers` exists.");

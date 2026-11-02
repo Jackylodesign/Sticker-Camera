@@ -77,9 +77,10 @@ export default function CameraScreen({
 
   return (
     <main className="screen camera">
-      <Link href="/history" className="history-link">
-        History
-      </Link>
+      <nav className="top-links">
+        <Link href="/library">Library</Link>
+        <Link href="/history">History</Link>
+      </nav>
       <div className="viewfinder">
         {/* playsInline + muted are required for live video on iPhone. */}
         <video
