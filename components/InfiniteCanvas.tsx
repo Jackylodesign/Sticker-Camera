@@ -12,9 +12,11 @@
 //   in all at once (no empty frames while loading).
 // Sizes, colours and friction: CANVAS in lib/constants.ts.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import LogoMark from "@/components/LogoMark";
 import { ABOUT, CANVAS } from "@/lib/constants";
+import type { PublicSticker } from "@/lib/db";
+import { formatDay } from "@/lib/meta";
 
 type Cell = { el: HTMLDivElement; img: HTMLImageElement; index: number };
 
@@ -22,9 +24,10 @@ const FRAME = 1000 / 60; // ms
 const TAP_SLOP = 6; // px a pointer may move and still count as a tap
 const REVEAL_TIMEOUT = 5000; // ms: show the grid anyway if images are this slow
 
-export default function InfiniteCanvas({ ids }: { ids: string[] }) {
+export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[] }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const [opened, setOpened] = useState<string | null>(null); // image URL
+  const ids = useMemo(() => stickers.map((s) => s.id), [stickers]);
+  const [opened, setOpened] = useState<{ url: string; index: number } | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
 
   // /about sends people here with ?about, which opens the panel straight away.
@@ -241,7 +244,8 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
       const r = Math.floor(py / pitch);
       // Ignore taps in the gap between cells.
       if (px - c * pitch > CANVAS.cellSize || py - r * pitch > CANVAS.cellSize) return;
-      urlFor(indexAt(c, r)).then((u) => u && setOpened(u));
+      const i = indexAt(c, r);
+      urlFor(i).then((u) => u && setOpened({ url: u, index: i }));
     };
 
     const onResize = () => {
@@ -350,16 +354,23 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
       {opened && (
         <div className="canvas-overlay" style={vars} onClick={() => setOpened(null)}>
           <img
-            src={opened}
+            src={opened.url}
             alt="Sticker"
             draggable={false}
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => e.preventDefault()}
           />
+          <p className="canvas-caption">{caption(stickers[opened.index])}</p>
         </div>
       )}
     </>
   );
+}
+
+/** "12 Oct 2026 · Mong Kok, Hong Kong", or just the date. */
+function caption(s: PublicSticker | undefined) {
+  if (!s) return null;
+  return [formatDay(s.day), s.area].filter(Boolean).join(" · ");
 }
 
 /** Modulo that stays positive for negative numbers: mod(-1, 3) = 2. */

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import InfiniteCanvas from "@/components/InfiniteCanvas";
 import { ABOUT, CANVAS } from "@/lib/constants";
-import { publicStickerIds } from "@/lib/db";
+import { publicStickers } from "@/lib/db";
 
 // What link previews show (the picture comes from app/opengraph-image.tsx).
 const description = ABOUT.paragraphs[0];
@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 // PUBLIC home page (no sign-in): public stickers on an endless, draggable grid.
 // The camera lives at /camera.
 export default async function HomePage() {
-  const ids = await publicStickerIds();
-  return <InfiniteCanvas ids={ids} />;
+  // Only id, day and coarse area reach the page. Never coordinates.
+  const stickers = await publicStickers();
+  return <InfiniteCanvas stickers={stickers} />;
 }

@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CaptureMeta } from "@/lib/location";
 import { errorMessage, saveSticker } from "@/lib/outbox";
 import { canvasToPngBlob, renderSticker, type PreparedSticker, type StickerStyle } from "@/lib/sticker";
 
 export default function PreviewScreen({
   sticker,
+  meta,
   onRetake,
   onSaved,
 }: {
   sticker: PreparedSticker;
+  meta?: CaptureMeta;
   onRetake: () => void;
   onSaved: (result: "queued" | "uploaded") => void;
 }) {
@@ -41,7 +44,7 @@ export default function PreviewScreen({
     setSaving(true);
     setError(null);
     try {
-      onSaved(await saveSticker(sticker.subject));
+      onSaved(await saveSticker(sticker.subject, meta));
     } catch (err) {
       setError(`Couldn't save: ${errorMessage(err)}`);
       setSaving(false);

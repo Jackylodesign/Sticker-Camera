@@ -12,6 +12,7 @@
 // used at all, Save uploads straight away instead.
 
 import { MAX_UPLOAD_BYTES } from "./limits";
+import type { CaptureMeta } from "./location";
 import { canvasToPngBlob } from "./sticker";
 
 export type Status = "waiting" | "uploading" | "uploaded" | "failed";
@@ -23,6 +24,10 @@ export type OutboxItem = {
   thumb: Blob; // ~200px PNG, kept forever (for History)
   png?: Blob; // full sticker, only until it's uploaded
   error?: string;
+  // When and where it was taken. Items saved before these existed lack them.
+  takenAt?: number;
+  lat?: number;
+  lng?: number;
 };
 
 // How images are kept in IndexedDB (plain bytes + type).
@@ -43,15 +48,18 @@ const THUMB_SIZE = 200;
  * Returns "queued" normally, or "uploaded" if the outbox couldn't be used and
  * it was uploaded directly. Throws an Error with a readable message on failure.
  */
-export async function saveSticker(cutout: HTMLCanvasElement): Promise<"queued" | "uploaded"> {
+export async function saveSticker(cutout: HTMLCanvasElement, meta?: CaptureMeta): Promise<"queued" | "uploaded"> {
   const id = crypto.randomUUID();
+  const createdAt = Date.now();
   const png = await fitUploadLimit(cutout);
   const thumb = await makeThumbnail(cutout);
+  const coords = await meta?.position; // usually known long before Save
+  const info = { createdAt, takenAt: meta?.takenAt ?? createdAt, ...coords };
   try {
-    await put({ id, createdAt: Date.now(), status: "waiting", png: await toBytes(png), thumb: await toBytes(thumb) });
+    await put({ id, ...info, status: "waiting", png: await toBytes(png), thumb: await toBytes(thumb) });
   } catch {
     // Can't keep it on this device: upload now, or tell why it failed.
-    await uploadOne(id, png);
+    await uploadOne(id, png, info);
     return "uploaded";
   }
   // Ask the browser not to clear our storage when space runs low.
@@ -125,7 +133,7 @@ async function uploadLoop() {
     tried.add(todo.id);
     await update(todo.id, { status: "uploading", error: undefined });
     try {
-      await uploadOne(todo.id, todo.png!);
+      await uploadOne(todo.id, todo.png!, todo);
       // Only now is it safe to forget the full PNG.
       await update(todo.id, { status: "uploaded", png: undefined });
     } catch (err) {
@@ -136,10 +144,15 @@ async function uploadLoop() {
 }
 
 /** Uploads one PNG. Resolves only on a 201; otherwise throws a readable Error. */
-async function uploadOne(id: string, png: Blob) {
+async function uploadOne(id: string, png: Blob, info: Pick<OutboxItem, "createdAt" | "takenAt" | "lat" | "lng">) {
   const form = new FormData();
   form.append("id", id);
   form.append("file", png, `${id}.png`);
+  form.append("taken_at", new Date(info.takenAt ?? info.createdAt).toISOString());
+  if (info.lat != null && info.lng != null) {
+    form.append("lat", String(info.lat));
+    form.append("lng", String(info.lng));
+  }
   let res: Response;
   try {
     res = await fetch("/api/stickers", { method: "POST", body: form });

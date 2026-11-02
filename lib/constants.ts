@@ -72,6 +72,10 @@ export const TRIM_ALPHA_THRESHOLD = 10;
 // Public visitors only ever get this small copy, never the original.
 export const DISPLAY_MAX_SIDE = 600; // px, longest side of the gallery image
 
+// The public caption shows the day a sticker was taken, as a calendar day in
+// this time zone (the exact time is never shown publicly).
+export const DATE_TIME_ZONE = "Asia/Hong_Kong";
+
 // Grid thumbnails in the Library (owner only), longest side in px.
 export const THUMB_MAX_SIDE = 400;
 
