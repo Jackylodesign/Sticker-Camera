@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { PlaceResult } from "@/lib/geocode";
 import { currentPosition } from "@/lib/location";
 import { errorMessage } from "@/lib/outbox";
 
@@ -21,6 +22,8 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
   const [area, setArea] = useState(initial.area_name ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<PlaceResult[] | null>(null);
 
   const send = async (changes: Record<string, unknown>, done: string) => {
     setBusy(true);
@@ -63,6 +66,34 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
     await send(coords, "Location set. Names were filled in; edit them if needed.");
   };
 
+  // Search runs only on Search / Enter (OpenStreetMap asks for no search-as-you-type).
+  const findPlace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim().length < 2) return;
+    setBusy(true);
+    setMessage("Searching…");
+    try {
+      const res = await fetch(`/api/places?q=${encodeURIComponent(query.trim())}`);
+      if (!res.ok) throw new Error();
+      const found = (await res.json()) as PlaceResult[];
+      setResults(found);
+      setMessage(found.length ? null : "No places found. Try another name, or add the city.");
+    } catch {
+      setMessage("Search didn't work. Try again in a moment.");
+    }
+    setBusy(false);
+  };
+
+  // Use the picked place's spot and names (names stay editable afterwards).
+  const pick = (r: PlaceResult) => {
+    setResults(null);
+    setQuery("");
+    const changes: Record<string, unknown> = { lat: r.lat, lng: r.lng };
+    if (r.place_name) changes.place_name = r.place_name;
+    if (r.area_name) changes.area_name = r.area_name;
+    void send(changes, "Location set. Edit the names if needed, then Save details.");
+  };
+
   const clear = () => {
     if (confirm("Remove the location and place names from this sticker?")) {
       void send({ lat: null, lng: null }, "Location cleared.");
@@ -77,6 +108,33 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
         <span>Date and time</span>
         <input type="datetime-local" value={taken} onChange={(e) => setTaken(e.target.value)} disabled={busy} />
       </label>
+      <form className="meta-search" onSubmit={findPlace}>
+        <label>
+          <span>Find a place</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g. Mong Kok, or a shop name"
+            disabled={busy}
+          />
+        </label>
+        <button className="button secondary" type="submit" disabled={busy || query.trim().length < 2}>
+          Search
+        </button>
+      </form>
+      {results && results.length > 0 && (
+        <ul className="meta-results">
+          {results.map((r) => (
+            <li key={`${r.lat},${r.lng}`}>
+              <button type="button" onClick={() => pick(r)} disabled={busy}>
+                <b>{r.area_name ?? r.place_name ?? r.label}</b>
+                <small>{r.label}</small>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <label>
         <span>Place (only you)</span>
         <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="e.g. Sai Yeung Choi Street, Mong Kok" disabled={busy} />
