@@ -1,20 +1,25 @@
 import { put } from "@vercel/blob";
 import { sql, type StickerRow } from "@/lib/db";
 import { MAX_UPLOAD_BYTES } from "@/lib/limits";
-import { requireOwner } from "@/lib/owner";
+import { preflight, withCors } from "@/lib/cors";
+import { requireOwner, requireOwnerOrToken } from "@/lib/owner";
 import { readPngSize } from "@/lib/png";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// List all stickers, newest first.
-export async function GET() {
-  const denied = await requireOwner();
-  if (denied) return denied;
+// List all stickers, newest first. Also used by the Figma plugin (token).
+export async function GET(request: Request) {
+  const denied = await requireOwnerOrToken(request);
+  if (denied) return withCors(denied);
 
   const rows = (await sql`
     SELECT id, width, height, bytes, created_at, is_public
     FROM stickers ORDER BY created_at DESC`) as StickerRow[];
-  return Response.json(rows);
+  return withCors(Response.json(rows));
+}
+
+export function OPTIONS() {
+  return preflight("GET");
 }
 
 // Upload one sticker: a multipart form with `file` (PNG) and `id` (a uuid
