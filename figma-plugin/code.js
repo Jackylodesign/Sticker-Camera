@@ -4,6 +4,7 @@
 
 var TOKEN_KEY = "stickerCameraToken";
 var MAX_SIDE = 400; // inserted stickers are at most this big (longer side), in px
+var GAP = 24; // space between stickers added together, in px
 
 figma.showUI(__html__, { width: 360, height: 540, themeColors: true });
 
@@ -17,41 +18,72 @@ figma.ui.onmessage = function (msg) {
   } else if (msg.type === "clear-token") {
     figma.clientStorage.deleteAsync(TOKEN_KEY);
   } else if (msg.type === "insert") {
+    // One sticker, or several (msg.items) laid out in a grid.
     try {
-      insertSticker(msg.bytes, msg.width, msg.height);
-      figma.ui.postMessage({ type: "inserted" });
+      var items = msg.items || [{ bytes: msg.bytes, width: msg.width, height: msg.height }];
+      insertStickers(items);
+      figma.ui.postMessage({ type: "inserted", count: items.length });
     } catch (err) {
       figma.ui.postMessage({ type: "insert-failed", message: String(err && err.message ? err.message : err) });
     }
   }
 };
 
-function insertSticker(bytes, width, height) {
-  var image = figma.createImage(bytes);
+function insertStickers(items) {
+  var rects = items.map(function (item) {
+    return makeStickerRect(item.bytes, item.width, item.height);
+  });
 
-  // Natural size, scaled down so the longer side is at most MAX_SIDE.
-  var scale = Math.min(1, MAX_SIDE / Math.max(width, height));
-  var w = Math.max(1, Math.round(width * scale));
-  var h = Math.max(1, Math.round(height * scale));
-
-  var rect = figma.createRectangle();
-  rect.name = "Sticker";
-  rect.resize(w, h);
-  rect.fills = [{ type: "IMAGE", imageHash: image.hash, scaleMode: "FILL" }];
+  // Lay them out in rows, roughly square: 1 → 1 column, 4 → 2, 9 → 3…
+  var columns = Math.ceil(Math.sqrt(rects.length));
+  var positions = [];
+  var blockWidth = 0;
+  var y = 0;
+  for (var start = 0; start < rects.length; start += columns) {
+    var row = rects.slice(start, start + columns);
+    var x = 0;
+    var rowHeight = 0;
+    for (var i = 0; i < row.length; i++) {
+      positions.push({ x: x, y: y });
+      x += row[i].width + GAP;
+      rowHeight = Math.max(rowHeight, row[i].height);
+    }
+    blockWidth = Math.max(blockWidth, x - GAP);
+    y += rowHeight + GAP;
+  }
+  var blockHeight = y - GAP;
 
   // Next to the selection if there is one, else in the middle of the view.
   var box = selectionBounds();
+  var originX, originY;
   if (box) {
-    rect.x = box.x + box.width + 24;
-    rect.y = box.y;
+    originX = box.x + box.width + GAP;
+    originY = box.y;
   } else {
     var c = figma.viewport.center;
-    rect.x = Math.round(c.x - w / 2);
-    rect.y = Math.round(c.y - h / 2);
+    originX = Math.round(c.x - blockWidth / 2);
+    originY = Math.round(c.y - blockHeight / 2);
   }
-  figma.currentPage.appendChild(rect);
-  figma.currentPage.selection = [rect];
-  figma.viewport.scrollAndZoomIntoView([rect]);
+
+  for (var j = 0; j < rects.length; j++) {
+    rects[j].x = originX + positions[j].x;
+    rects[j].y = originY + positions[j].y;
+    figma.currentPage.appendChild(rects[j]);
+  }
+  figma.currentPage.selection = rects;
+  figma.viewport.scrollAndZoomIntoView(rects);
+}
+
+// A rectangle filled with the sticker at its natural size, scaled down so the
+// longer side is at most MAX_SIDE.
+function makeStickerRect(bytes, width, height) {
+  var image = figma.createImage(bytes);
+  var scale = Math.min(1, MAX_SIDE / Math.max(width, height));
+  var rect = figma.createRectangle();
+  rect.name = "Sticker";
+  rect.resize(Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)));
+  rect.fills = [{ type: "IMAGE", imageHash: image.hash, scaleMode: "FILL" }];
+  return rect;
 }
 
 // Bounding box (page coordinates) around everything selected, or null.

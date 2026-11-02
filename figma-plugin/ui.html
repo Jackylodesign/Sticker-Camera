@@ -103,6 +103,37 @@
   }
   .confirm button { padding: 3px 8px; background: #fff; color: #333; border-color: transparent; }
   .confirm .yes { background: #e03e1a; border-color: transparent; color: #fff; }
+
+  /* Select mode: tap tiles to pick several, then add them all at once. */
+  button.on { border-color: var(--figma-color-border-brand-strong, #0d99ff); color: var(--figma-color-text-brand, #0d99ff); }
+  .selecting .tile .del { display: none !important; }
+  .tile .check {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    font-size: 11px;
+    line-height: 14px;
+    text-align: center;
+    display: none;
+  }
+  .selecting .tile .check { display: block; }
+  .tile.picked { outline: 2px solid var(--figma-color-border-brand-strong, #0d99ff); outline-offset: -2px; }
+  .tile.picked .check { background: var(--figma-color-bg-brand, #0d99ff); border-color: var(--figma-color-bg-brand, #0d99ff); }
+  .tile.picked .check::after { content: "✓"; }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--figma-color-border, #e5e5e5);
+  }
+  .actions .spacer { flex: 1; }
 </style>
 
 <div id="signin" class="view signin hidden">
@@ -121,11 +152,18 @@
     <label><input type="checkbox" id="opt-border" checked /> White border</label>
     <label><input type="checkbox" id="opt-shadow" checked /> Shadow</label>
     <span class="spacer"></span>
+    <button id="select-mode" title="Pick several stickers">Select</button>
     <button id="refresh" title="Refresh">Refresh</button>
     <button id="signout" class="link">Sign out</button>
   </div>
   <p id="status" class="status muted"></p>
   <div id="grid" class="grid"></div>
+  <div id="actions" class="actions hidden">
+    <button id="select-all">Select all</button>
+    <button id="select-none">Clear</button>
+    <span class="spacer"></span>
+    <button id="add-selected" class="primary" disabled>Add 0</button>
+  </div>
 </div>
 
 <script>
@@ -147,7 +185,7 @@
       if (token) showLibrary();
       else showSignin("");
     } else if (msg.type === "inserted") {
-      setStatus("Sticker added.");
+      setStatus(msg.count > 1 ? msg.count + " stickers added." : "Sticker added.");
     } else if (msg.type === "insert-failed") {
       setStatus("Couldn't add the sticker: " + msg.message, true);
     }
@@ -259,6 +297,8 @@
     document.getElementById("library").classList.remove("hidden");
     var version = ++listVersion;
     grid.textContent = "";
+    tiles = [];
+    updateSelection();
     if (!stickers) {
       setStatus("Loading…");
       try {
@@ -269,9 +309,13 @@
       }
       if (version !== listVersion) return;
     }
-    setStatus(stickers.length ? "Click a sticker to add it." : "No stickers yet. Save some from the camera.");
-    var tiles = stickers.map(makeTile); // the server sends newest first
+    tiles = stickers.map(makeTile); // the server sends newest first
+    setStatus(stickers.length ? hint() : "No stickers yet. Save some from the camera.");
     loadThumbs(tiles, version);
+  }
+
+  function hint() {
+    return selecting ? "Tap stickers to pick them, then Add." : "Click a sticker to add it.";
   }
 
   function makeTile(sticker) {
@@ -280,6 +324,10 @@
     tile.title = "Add to Figma";
     var canvas = document.createElement("canvas");
     tile.appendChild(canvas);
+
+    var check = document.createElement("span");
+    check.className = "check";
+    tile.appendChild(check);
 
     var del = document.createElement("button");
     del.className = "del";
@@ -291,12 +339,64 @@
     };
     tile.appendChild(del);
 
+    var entry = { tile: tile, canvas: canvas, id: sticker.id };
     tile.onclick = function () {
-      insert(tile, sticker.id);
+      if (tile.querySelector(".confirm")) return;
+      if (selecting) {
+        tile.classList.toggle("picked");
+        updateSelection();
+      } else {
+        insert([entry]);
+      }
     };
     grid.appendChild(tile);
-    return { tile: tile, canvas: canvas, id: sticker.id };
+    return entry;
   }
+
+  // ---------- select several ----------
+  var tiles = []; // the tiles currently in the grid
+  var selecting = false;
+  var selectModeBtn = document.getElementById("select-mode");
+  var actions = document.getElementById("actions");
+  var addSelectedBtn = document.getElementById("add-selected");
+
+  function pickedTiles() {
+    return tiles.filter(function (t) {
+      return t.tile.isConnected && t.tile.classList.contains("picked");
+    });
+  }
+
+  function updateSelection() {
+    var n = pickedTiles().length;
+    addSelectedBtn.textContent = "Add " + n;
+    addSelectedBtn.disabled = n === 0 || adding;
+  }
+
+  function setSelecting(on) {
+    selecting = on;
+    grid.classList.toggle("selecting", on);
+    actions.classList.toggle("hidden", !on);
+    selectModeBtn.classList.toggle("on", on);
+    selectModeBtn.textContent = on ? "Done" : "Select";
+    if (!on) tiles.forEach(function (t) { t.tile.classList.remove("picked"); });
+    updateSelection();
+    if (tiles.length) setStatus(hint());
+  }
+
+  selectModeBtn.onclick = function () {
+    setSelecting(!selecting);
+  };
+  document.getElementById("select-all").onclick = function () {
+    tiles.forEach(function (t) { if (t.tile.isConnected) t.tile.classList.add("picked"); });
+    updateSelection();
+  };
+  document.getElementById("select-none").onclick = function () {
+    tiles.forEach(function (t) { t.tile.classList.remove("picked"); });
+    updateSelection();
+  };
+  addSelectedBtn.onclick = function () {
+    insert(pickedTiles());
+  };
 
   // Thumbnails need the token header, so they're fetched (a few at a time)
   // and drawn into canvases instead of using <img src>.
@@ -330,35 +430,52 @@
   };
 
   // ---------- insert ----------
-  async function insert(tile, id) {
-    if (tile.classList.contains("busy") || tile.querySelector(".confirm")) return;
-    tile.classList.add("busy");
-    setStatus("Adding…");
-    try {
-      var res = await api("/api/stickers/" + id + "/image");
-      if (res.status === 404) throw new Error("This sticker no longer exists. Refresh the list.");
-      var bitmap = await createImageBitmap(await res.blob());
-      var cutout = document.createElement("canvas");
-      cutout.width = bitmap.width;
-      cutout.height = bitmap.height;
-      cutout.getContext("2d").drawImage(bitmap, 0, 0);
-      bitmap.close();
+  var adding = false;
 
-      var styled = renderSticker(prepareSticker(cutout), {
-        border: document.getElementById("opt-border").checked,
-        shadow: document.getElementById("opt-shadow").checked,
-      });
-      var png = await new Promise(function (resolve, reject) {
-        styled.toBlob(function (b) {
-          b ? resolve(b) : reject(new Error("PNG export failed"));
-        }, "image/png");
-      });
-      var bytes = new Uint8Array(await png.arrayBuffer());
-      send({ type: "insert", bytes: bytes, width: styled.width, height: styled.height });
+  // Fetches, styles and sends one or more stickers. Several are sent together
+  // so code.js can lay them out in a neat grid.
+  async function insert(entries) {
+    if (adding || !entries.length) return;
+    adding = true;
+    updateSelection();
+    var style = {
+      border: document.getElementById("opt-border").checked,
+      shadow: document.getElementById("opt-shadow").checked,
+    };
+    entries.forEach(function (e) { e.tile.classList.add("busy"); });
+    var items = [];
+    try {
+      for (var i = 0; i < entries.length; i++) {
+        setStatus(entries.length > 1 ? "Preparing " + (i + 1) + " of " + entries.length + "…" : "Adding…");
+        items.push(await styledPng(entries[i].id, style));
+      }
+      send({ type: "insert", items: items });
+      if (selecting) setSelecting(false);
     } catch (err) {
       handleError(err);
     }
-    tile.classList.remove("busy");
+    entries.forEach(function (e) { e.tile.classList.remove("busy"); });
+    adding = false;
+    updateSelection();
+  }
+
+  async function styledPng(id, style) {
+    var res = await api("/api/stickers/" + id + "/image");
+    if (res.status === 404) throw new Error("A sticker no longer exists. Refresh the list.");
+    var bitmap = await createImageBitmap(await res.blob());
+    var cutout = document.createElement("canvas");
+    cutout.width = bitmap.width;
+    cutout.height = bitmap.height;
+    cutout.getContext("2d").drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    var styled = renderSticker(prepareSticker(cutout), style);
+    var png = await new Promise(function (resolve, reject) {
+      styled.toBlob(function (b) {
+        b ? resolve(b) : reject(new Error("PNG export failed"));
+      }, "image/png");
+    });
+    return { bytes: new Uint8Array(await png.arrayBuffer()), width: styled.width, height: styled.height };
   }
 
   // ---------- delete (with a confirm step) ----------
@@ -384,6 +501,7 @@
       try {
         await api("/api/stickers/" + id, { method: "DELETE" }); // 404 = already gone
         tile.remove();
+        updateSelection();
         setStatus("Sticker deleted.");
       } catch (err) {
         box.remove();

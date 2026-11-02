@@ -32,6 +32,8 @@ so Figma keeps finding `manifest.json`).
 
 - **Click a sticker** to add it. It lands in the middle of your view, or next to what
   you have selected, at up to 400px on its longer side.
+- **Select** lets you add several at once: tap stickers to pick them (or **Select all**),
+  then **Add**. They're laid out in a neat grid. **Done** leaves select mode.
 - **White border / Shadow** decide how the next sticker is added.
 - **Refresh** reloads the list (e.g. after saving new stickers on your phone).
 - Hover a sticker and click **×** to delete it. It asks first, and deleting is forever
