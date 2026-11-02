@@ -8,6 +8,8 @@
 // - One requestAnimationFrame loop moves everything with translate3d. It only
 //   runs while something is moving.
 // - On desktop the grid drifts slightly with the mouse, hinting it can be dragged.
+// - The grid stays hidden until the stickers on screen have loaded, then fades
+//   in all at once (no empty frames while loading).
 // Sizes, colours and friction: CANVAS in lib/constants.ts.
 
 import Link from "next/link";
@@ -18,6 +20,7 @@ type Cell = { el: HTMLDivElement; img: HTMLImageElement; index: number };
 
 const FRAME = 1000 / 60; // ms
 const TAP_SLOP = 6; // px a pointer may move and still count as a tap
+const REVEAL_TIMEOUT = 5000; // ms: show the grid anyway if images are this slow
 
 export default function InfiniteCanvas({ ids }: { ids: string[] }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -247,6 +250,21 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
     buildPool();
     render();
 
+    // Reveal once the stickers on screen are downloaded and decoded, or after
+    // REVEAL_TIMEOUT so a slow image never keeps the page blank.
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      root.classList.add("is-ready");
+    };
+    const onScreen = [...new Set(pool.map((cell) => cell.index))];
+    Promise.all(onScreen.map((i) => urlFor(i)))
+      .then(() => new Promise((r) => requestAnimationFrame(r))) // let the src be set
+      .then(() => Promise.all(pool.map((cell) => (cell.img.src ? cell.img.decode().catch(() => {}) : null))))
+      .then(reveal);
+    const revealTimer = setTimeout(reveal, REVEAL_TIMEOUT);
+
     root.addEventListener("pointerdown", onDown);
     root.addEventListener("pointermove", onMove);
     root.addEventListener("pointerup", onUp);
@@ -258,6 +276,7 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
     window.addEventListener("resize", onResize);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(revealTimer);
       root.removeEventListener("pointerdown", onDown);
       root.removeEventListener("pointermove", onMove);
       root.removeEventListener("pointerup", onUp);
@@ -290,7 +309,7 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
 
   return (
     <>
-      <div ref={rootRef} className="canvas" style={vars}>
+      <div ref={rootRef} className={ids.length === 0 ? "canvas is-ready" : "canvas"} style={vars}>
         {ids.length === 0 && <p className="empty">Nothing here yet.</p>}
       </div>
       <header className="canvas-bar" style={{ color: CANVAS.text }}>
