@@ -4,7 +4,7 @@ import { ABOUT, CANVAS } from "@/lib/constants";
 import { publicStickers } from "@/lib/db";
 
 // What link previews show (the picture comes from app/opengraph-image.tsx).
-const description = ABOUT.paragraphs[0];
+const description = ABOUT.description;
 export const metadata: Metadata = {
   title: "Sticker Index",
   description,
