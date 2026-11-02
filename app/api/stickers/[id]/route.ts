@@ -22,7 +22,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 }
 
 // Make a sticker public or private. A multipart form with:
-//   is_public = "true"  + display = the small watermarked PNG (made in the app)
+//   is_public = "true"  + display = the small PNG (made in the app)
 //   is_public = "false" (no file)
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const denied = await requireOwner();

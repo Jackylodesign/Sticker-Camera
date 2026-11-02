@@ -73,7 +73,7 @@ export default function StickerDetail({ id, initialPublic }: { id: string; initi
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
 
-  // Public: the gallery gets a small watermarked copy in the style shown now.
+  // Public: the gallery gets a small copy in the style shown now.
   const togglePublic = async () => {
     setBusy(true);
     setError(null);
@@ -119,7 +119,7 @@ export default function StickerDetail({ id, initialPublic }: { id: string; initi
         <Toggle label="White border" on={style.border} onChange={(border) => setStyle((s) => ({ ...s, border }))} />
         <Toggle label="Shadow" on={style.shadow} onChange={(shadow) => setStyle((s) => ({ ...s, shadow }))} />
         <p className="public-note">
-          {isPublic ? "Public: shown in the Gallery as a small watermarked copy." : "Private: only you can see it."}
+          {isPublic ? "Public: shown in the Gallery and Canvas as a small copy." : "Private: only you can see it."}
         </p>
       </div>
 

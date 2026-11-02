@@ -22,8 +22,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
       if (pathname === "/signin" || pathname.startsWith("/api/auth")) return true;
-      // The public gallery and its watermarked images are open to everyone.
-      if (pathname === "/gallery" || pathname.startsWith("/api/gallery/")) return true;
+      // The public gallery, canvas and their small images are open to everyone.
+      if (pathname === "/gallery" || pathname === "/canvas" || pathname.startsWith("/api/gallery/")) return true;
       if (isOwner(auth?.user?.email)) return true;
       // APIs answer "401" instead of redirecting to the sign-in page.
       if (pathname.startsWith("/api/")) {

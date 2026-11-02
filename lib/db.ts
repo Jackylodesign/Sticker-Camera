@@ -14,3 +14,12 @@ export type StickerRow = {
   created_at: string;
   is_public: boolean;
 };
+
+/** Ids of public stickers (newest first). Safe to show anyone: no pathnames. */
+export async function publicStickerIds(): Promise<string[]> {
+  const rows = (await sql`
+    SELECT id FROM stickers
+    WHERE is_public AND display_pathname IS NOT NULL
+    ORDER BY created_at DESC`) as { id: string }[];
+  return rows.map((r) => r.id);
+}

@@ -556,3 +556,97 @@ body {
 .button.danger {
   color: #ff8a80;
 }
+
+/* ---------- Infinite canvas (sizes and colours: CANVAS in lib/constants.ts) ---------- */
+.canvas {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* We handle every touch ourselves: no page scroll, bounce or zoom. */
+  touch-action: none;
+  overscroll-behavior: none;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.canvas.is-dragging {
+  cursor: grabbing;
+}
+
+.canvas .empty {
+  color: #666;
+}
+
+.canvas-cell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cell);
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.canvas-cell img {
+  width: var(--fit);
+  height: var(--fit);
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.2s ease-out;
+}
+
+@media (hover: hover) {
+  .canvas:not(.is-dragging) .canvas-cell:hover img {
+    transform: scale(var(--hover-scale));
+  }
+}
+
+.canvas-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  touch-action: none;
+}
+
+.canvas-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.library-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 12px;
+  font-size: 14px;
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #fff;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:disabled {
+  opacity: 0.5;
+}
+
+.refresh-status {
+  color: #aaa;
+}
