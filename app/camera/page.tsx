@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CameraScreen from "@/components/CameraScreen";
 import LiftScreen from "@/components/LiftScreen";
 import ModelStatusBar from "@/components/ModelStatusBar";
@@ -16,6 +16,7 @@ import {
   subscribeModelStatus,
   type ModelStatus,
 } from "@/lib/models";
+import type { CaptureMeta } from "@/lib/location";
 import { NO_OUTBOX_MESSAGE, startAutoUpload } from "@/lib/outbox";
 import { prepareSticker, type PreparedSticker } from "@/lib/sticker";
 
@@ -30,6 +31,8 @@ export default function Home() {
   const [screen, setScreen] = useState<Screen>({ name: "camera" });
   const [modelStatus, setModelStatus] = useState<ModelStatus>({ state: "loading", loaded: 0, total: 0 });
   const [notice, setNotice] = useState<string | null>(null);
+  // When and where the current photo was taken, used at Save.
+  const meta = useRef<CaptureMeta | undefined>(undefined);
 
   // Upload any stickers still waiting from last time, and again when back online.
   useEffect(() => startAutoUpload(), []);
@@ -68,7 +71,8 @@ export default function Home() {
   if (screen.name === "camera") {
     return (
       <CameraScreen
-        onPhoto={(photo) => {
+        onPhoto={(photo, photoMeta) => {
+          meta.current = photoMeta;
           setNotice(null);
           setScreen(IS_IOS ? { name: "lift", photo } : { name: "select", photo });
         }}
@@ -102,6 +106,7 @@ export default function Home() {
     return (
       <PreviewScreen
         sticker={screen.sticker}
+        meta={meta.current}
         onRetake={retake}
         onSaved={(result) => {
           retake();

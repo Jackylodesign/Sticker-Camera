@@ -2,6 +2,7 @@
 // Vercel functions.
 
 import { neon } from "@neondatabase/serverless";
+import { DATE_TIME_ZONE } from "./constants";
 
 export const sql = neon(process.env.DATABASE_URL!);
 
@@ -22,4 +23,22 @@ export async function publicStickerIds(): Promise<string[]> {
     WHERE is_public AND display_pathname IS NOT NULL
     ORDER BY created_at DESC`) as { id: string }[];
   return rows.map((r) => r.id);
+}
+
+/** What the public may know about a sticker. Never coordinates, place_name or times. */
+export type PublicSticker = {
+  id: string;
+  day: string; // "2026-10-12"
+  area: string | null; // e.g. "Mong Kok, Hong Kong"
+};
+
+/** Public stickers (newest first) with their day and coarse area only. */
+export async function publicStickers(): Promise<PublicSticker[]> {
+  return (await sql`
+    SELECT id,
+      to_char(COALESCE(taken_at, created_at) AT TIME ZONE ${DATE_TIME_ZONE}, 'YYYY-MM-DD') AS day,
+      area_name AS area
+    FROM stickers
+    WHERE is_public AND display_pathname IS NOT NULL
+    ORDER BY created_at DESC`) as PublicSticker[];
 }

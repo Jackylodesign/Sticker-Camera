@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { currentPosition, locationNotAskedYet, readPhotoMeta, type CaptureMeta } from "@/lib/location";
 import { captureVideoFrame, loadImageFile } from "@/lib/photo";
 import type { ModelStatus } from "@/lib/models";
 import ModelStatusBar from "./ModelStatusBar";
@@ -13,7 +14,7 @@ export default function CameraScreen({
   modelStatus,
   notice,
 }: {
-  onPhoto: (photo: HTMLCanvasElement) => void;
+  onPhoto: (photo: HTMLCanvasElement, meta: CaptureMeta) => void;
   modelStatus: ModelStatus;
   notice?: string | null;
 }) {
@@ -21,6 +22,12 @@ export default function CameraScreen({
   const [facing, setFacing] = useState<Facing>("environment");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [locationHint, setLocationHint] = useState(false);
+
+  // Location is asked at the first shutter press, not now. Until then, say why.
+  useEffect(() => {
+    locationNotAskedYet().then(setLocationHint);
+  }, []);
 
   // Start the camera, and stop it again when we leave this screen or switch
   // cameras (otherwise the camera light stays on).
@@ -66,13 +73,20 @@ export default function CameraScreen({
 
   const shoot = () => {
     const video = videoRef.current;
-    if (video && video.videoWidth) onPhoto(captureVideoFrame(video));
+    if (!video || !video.videoWidth) return;
+    // Time and place of the shutter press. The location arrives later; nothing waits for it here.
+    const meta = { takenAt: Date.now(), position: currentPosition() };
+    setLocationHint(false);
+    onPhoto(captureVideoFrame(video), meta);
   };
 
   const pickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // lets you pick the same file twice in a row
-    if (file) onPhoto(await loadImageFile(file));
+    if (!file) return;
+    // Read EXIF first: drawing the photo into a canvas throws it away.
+    const meta = await readPhotoMeta(file);
+    onPhoto(await loadImageFile(file), meta);
   };
 
   return (
@@ -95,6 +109,9 @@ export default function CameraScreen({
       </div>
 
       {notice && <p className="notice">{notice}</p>}
+      {locationHint && !notice && (
+        <p className="location-hint">Your first photo asks for your location, so each sticker remembers where it was found. Only you see the exact spot.</p>
+      )}
       <ModelStatusBar status={modelStatus} />
 
       <div className="controls">

@@ -35,5 +35,14 @@ await sql`
     last_used_at timestamptz,
     revoked_at   timestamptz
   )`;
+// Stage 5: when and where each sticker was taken. lat/lng and place_name are
+// private (owner only); area_name is coarse ("Mong Kok, Hong Kong") and may be
+// shown publicly. Old stickers get their upload time as the date.
+await sql`ALTER TABLE stickers ADD COLUMN IF NOT EXISTS taken_at timestamptz`;
+await sql`ALTER TABLE stickers ADD COLUMN IF NOT EXISTS lat double precision`;
+await sql`ALTER TABLE stickers ADD COLUMN IF NOT EXISTS lng double precision`;
+await sql`ALTER TABLE stickers ADD COLUMN IF NOT EXISTS place_name text`;
+await sql`ALTER TABLE stickers ADD COLUMN IF NOT EXISTS area_name text`;
+await sql`UPDATE stickers SET taken_at = created_at WHERE taken_at IS NULL`;
 
 console.log("Database is ready: tables `stickers` and `api_tokens` exist.");
