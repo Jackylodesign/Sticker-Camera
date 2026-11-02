@@ -1,7 +1,7 @@
 import { get } from "@vercel/blob";
 import { sql } from "@/lib/db";
 
-// PUBLIC route (no sign-in): the small watermarked gallery copy of a sticker.
+// PUBLIC route (no sign-in): the small gallery copy of a sticker.
 // Works only while the sticker is public, and only ever reads the gallery
 // copy, never the original.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {

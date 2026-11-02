@@ -1,5 +1,5 @@
 // Runs before every page and API request: signed-out visitors are sent to
-// /signin (pages) or get a 401 (API). /gallery is the public exception.
+// /signin (pages) or get a 401 (API). /gallery and /canvas are the public exceptions.
 // See `authorized` in auth.ts.
 export { auth as proxy } from "@/auth";
 
