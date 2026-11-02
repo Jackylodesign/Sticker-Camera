@@ -726,8 +726,28 @@ body {
   margin-top: 0.9em;
 }
 
+.about-enter {
+  display: block;
+  width: 100%;
+  margin-top: 1.6em;
+  height: 44px;
+  border: none;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.about-enter:hover {
+  background: #fff;
+}
+
 .about-panel .about-credit {
-  margin-top: 2em;
+  margin-top: 1.4em;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.5);
 }
