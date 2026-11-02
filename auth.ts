@@ -24,7 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const { pathname } = request.nextUrl;
       if (pathname === "/signin" || pathname.startsWith("/api/auth")) return true;
       // The public gallery, canvas and their small images are open to everyone.
-      if (pathname === "/gallery" || pathname === "/canvas" || pathname.startsWith("/api/gallery/")) return true;
+      if (pathname === "/gallery" || pathname === "/canvas" || pathname === "/about" || pathname.startsWith("/api/gallery/")) return true;
       if (isOwner(auth?.user?.email)) return true;
       // Figma plugin: a few APIs accept a token instead. Let those requests
       // (and their CORS preflight) reach the route, which checks the token.

@@ -7,8 +7,10 @@
 //   other edge.
 // - One requestAnimationFrame loop moves everything with translate3d. It only
 //   runs while something is moving.
+// - On desktop the grid drifts slightly with the mouse, hinting it can be dragged.
 // Sizes, colours and friction: CANVAS in lib/constants.ts.
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CANVAS } from "@/lib/constants";
 
@@ -59,6 +61,10 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
     let poolRows = 0;
     let ox = 0; // pan offset, px
     let oy = 0;
+    let dx = 0; // mouse drift on top of the pan offset, px
+    let dy = 0;
+    let driftX = 0; // where the drift is heading
+    let driftY = 0;
 
     const buildPool = () => {
       for (const cell of pool) cell.el.remove();
@@ -78,13 +84,13 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
     };
 
     const render = () => {
-      const c0 = Math.floor(-ox / pitch) - 1;
-      const r0 = Math.floor(-oy / pitch) - 1;
+      const c0 = Math.floor(-(ox + dx) / pitch) - 1;
+      const r0 = Math.floor(-(oy + dy) / pitch) - 1;
       for (let r = r0; r < r0 + poolRows; r++) {
         for (let c = c0; c < c0 + poolCols; c++) {
           const cell = pool[mod(r, poolRows) * poolCols + mod(c, poolCols)];
-          const x = c * pitch + ox + CANVAS.gap / 2;
-          const y = r * pitch + oy + CANVAS.gap / 2;
+          const x = c * pitch + ox + dx + CANVAS.gap / 2;
+          const y = r * pitch + oy + dy + CANVAS.gap / 2;
           cell.el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
           const i = indexAt(c, r);
           if (cell.index !== i) {
@@ -117,8 +123,17 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
         vy *= k;
         if (Math.hypot(vx, vy) < 0.01) vx = vy = 0;
       }
+      // Ease the drift towards where the mouse points.
+      const ease = 1 - Math.pow(1 - CANVAS.driftEase, dt / FRAME);
+      dx += (driftX - dx) * ease;
+      dy += (driftY - dy) * ease;
+      const drifting = Math.abs(driftX - dx) > 0.1 || Math.abs(driftY - dy) > 0.1;
+      if (!drifting) {
+        dx = driftX;
+        dy = driftY;
+      }
       render();
-      if (dragging || vx || vy) {
+      if (dragging || vx || vy || drifting) {
         raf = requestAnimationFrame(tick);
       } else {
         raf = 0;
@@ -150,7 +165,23 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
       samples = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }];
       wake();
     };
+    // Mouse hovering (not dragging): drift away from the pointer, as if
+    // leaning towards what's on that side.
+    const onHover = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || dragging || !CANVAS.drift) return;
+      const nx = (e.clientX / root.clientWidth) * 2 - 1; // -1 left … 1 right
+      const ny = (e.clientY / root.clientHeight) * 2 - 1;
+      driftX = -nx * CANVAS.drift;
+      driftY = -ny * CANVAS.drift;
+      wake();
+    };
+    const onLeave = () => {
+      driftX = driftY = 0;
+      wake();
+    };
+
     const onMove = (e: PointerEvent) => {
+      onHover(e);
       if (e.pointerId !== pointerId) return;
       ox += e.clientX - lastX;
       oy += e.clientY - lastY;
@@ -195,8 +226,8 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
     // ---------- tap / click: open one sticker ----------
     const onClick = (e: MouseEvent) => {
       if (moved) return;
-      const px = e.clientX - ox - CANVAS.gap / 2;
-      const py = e.clientY - oy - CANVAS.gap / 2;
+      const px = e.clientX - ox - dx - CANVAS.gap / 2;
+      const py = e.clientY - oy - dy - CANVAS.gap / 2;
       const c = Math.floor(px / pitch);
       const r = Math.floor(py / pitch);
       // Ignore taps in the gap between cells.
@@ -220,6 +251,7 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
     root.addEventListener("pointermove", onMove);
     root.addEventListener("pointerup", onUp);
     root.addEventListener("pointercancel", onUp);
+    root.addEventListener("pointerleave", onLeave);
     root.addEventListener("wheel", onWheel, { passive: false });
     root.addEventListener("click", onClick);
     root.addEventListener("contextmenu", noMenu);
@@ -230,6 +262,7 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
       root.removeEventListener("pointermove", onMove);
       root.removeEventListener("pointerup", onUp);
       root.removeEventListener("pointercancel", onUp);
+      root.removeEventListener("pointerleave", onLeave);
       root.removeEventListener("wheel", onWheel);
       root.removeEventListener("click", onClick);
       root.removeEventListener("contextmenu", noMenu);
@@ -249,6 +282,7 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
 
   const vars = {
     background: CANVAS.background,
+    color: CANVAS.text,
     "--cell": `${CANVAS.cellSize}px`,
     "--fit": `${CANVAS.stickerSize * 100}%`,
     "--hover-scale": CANVAS.hoverScale,
@@ -259,6 +293,10 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
       <div ref={rootRef} className="canvas" style={vars}>
         {ids.length === 0 && <p className="empty">Nothing here yet.</p>}
       </div>
+      <header className="canvas-bar" style={{ color: CANVAS.text }}>
+        <span className="canvas-bar-title">Sticker</span>
+        <Link href="/about">About</Link>
+      </header>
       {opened && (
         <div className="canvas-overlay" style={vars} onClick={() => setOpened(null)}>
           <img
