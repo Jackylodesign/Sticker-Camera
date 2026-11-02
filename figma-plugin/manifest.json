@@ -7,6 +7,6 @@
   "editorType": ["figma", "figjam"],
   "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": ["https://sticker-camera-brown.vercel.app"]
+    "allowedDomains": ["https://stickerindex.page"]
   }
 }

@@ -9,7 +9,7 @@ export default async function SignInPage({
 }) {
   const { error, callbackUrl } = await searchParams;
   // Go back to the page you came from. (Auth.js only allows pages on this site.)
-  const redirectTo = callbackUrl ?? "/";
+  const redirectTo = callbackUrl ?? "/camera";
 
   return (
     <main className="screen centered">

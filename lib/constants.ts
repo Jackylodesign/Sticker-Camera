@@ -85,7 +85,7 @@ export const WATERMARK = {
   margin: 0.03, // gap from the bottom-right corner, same unit
 };
 
-// ---------- Infinite canvas (/canvas) ----------
+// ---------- Infinite canvas (the home page) ----------
 // Text in the About panel on the public canvas. Edit freely.
 export const ABOUT = {
   paragraphs: [

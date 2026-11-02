@@ -18,7 +18,7 @@ computer where you import it.
    - Menu → **Plugins → Development → Import plugin from manifest…**
    - Pick `manifest.json` inside the `figma-plugin` folder.
 3. **Make a token.**
-   - Open https://sticker-camera-brown.vercel.app/library and sign in.
+   - Open https://stickerindex.page/library and sign in.
    - Open **Figma plugin** → **Generate token** → **Copy**.
      The token is shown only once. If you lose it, generate a new one.
 4. **Connect.**
@@ -48,7 +48,7 @@ in Library and paste it again. Revoke tokens you no longer use in Library → Fi
 - Plain JavaScript, no build step: `manifest.json`, `code.js` (Figma main thread) and
   `ui.html` (the plugin window). Edit them directly; there is nothing to rebuild.
   In Figma, re-run the plugin to pick up changes.
-- The window fetches from `https://sticker-camera-brown.vercel.app` with
+- The window fetches from `https://stickerindex.page` with
   `Authorization: Bearer <token>`. That domain is the only one allowed in
   `manifest.json` → `networkAccess`.
 - The server accepts the token only on: `GET /api/stickers`,
