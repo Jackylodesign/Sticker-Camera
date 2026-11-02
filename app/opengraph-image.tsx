@@ -47,12 +47,14 @@ export default async function Image() {
 }
 
 // Grid cells covering the image, laid out like components/InfiniteCanvas.tsx:
-// sticker 0 sits in the middle and each row starts further along the list.
+// each row starts further along the list.
 function gridCells(n: number) {
   const pitch = CELL + GAP;
   const cols = Math.ceil(Math.sqrt(n));
   const shift = cols % n === 0 ? cols + 1 : cols;
-  const ox = (size.width - pitch) / 2;
+  // Shifted half a cell so the left and right edges cut through stickers,
+  // which makes the "it keeps going" feeling obvious.
+  const ox = size.width / 2;
   const oy = (size.height - pitch) / 2;
   const cells: { x: number; y: number; index: number }[] = [];
   for (let r = Math.floor(-oy / pitch) - 1; r * pitch + oy < size.height; r++) {
