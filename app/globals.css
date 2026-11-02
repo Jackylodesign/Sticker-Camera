@@ -647,6 +647,9 @@ body {
 
 /* Wordmark: a step bigger and heavier than the links. */
 .canvas-bar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.01em;

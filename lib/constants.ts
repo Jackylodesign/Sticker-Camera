@@ -89,7 +89,7 @@ export const WATERMARK = {
 // Text in the About panel on the public canvas. Edit freely.
 export const ABOUT = {
   paragraphs: [
-    "Sticker is a personal collection of everyday things, cut out and kept as stickers.",
+    "Sticker Index is a personal collection of everyday things, cut out and kept as stickers.",
     "Each one starts as a photo on my phone. The background is lifted off, the cut-out is saved to a private library, and a small copy lands here, on an endless wall you can wander around.",
     "Drag in any direction to explore. Tap a sticker to see it on its own.",
   ],

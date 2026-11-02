@@ -13,6 +13,7 @@
 // Sizes, colours and friction: CANVAS in lib/constants.ts.
 
 import { useEffect, useRef, useState } from "react";
+import LogoMark from "@/components/LogoMark";
 import { ABOUT, CANVAS } from "@/lib/constants";
 
 type Cell = { el: HTMLDivElement; img: HTMLImageElement; index: number };
@@ -322,7 +323,10 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
         {ids.length === 0 && <p className="empty">Nothing here yet.</p>}
       </div>
       <header className="canvas-bar" style={{ color: CANVAS.text }}>
-        <span className="canvas-bar-title">Sticker</span>
+        <span className="canvas-bar-title">
+          <LogoMark />
+          Sticker Index
+        </span>
         <button
           type="button"
           className={aboutOpen ? "is-active" : undefined}
