@@ -3,7 +3,7 @@ import InfiniteCanvas from "@/components/InfiniteCanvas";
 import { CANVAS } from "@/lib/constants";
 import { publicStickerIds } from "@/lib/db";
 
-export const metadata = { title: "Canvas · Sticker Camera" };
+export const metadata = { title: "Sticker Index" };
 export const viewport: Viewport = { themeColor: CANVAS.background };
 // Always read the database, so a sticker made private disappears at once.
 export const dynamic = "force-dynamic";
