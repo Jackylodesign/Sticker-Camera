@@ -5,3 +5,5 @@ next-env.d.ts
 *.tsbuildinfo
 .vercel
 .DS_Store
+.env
+.env*.local

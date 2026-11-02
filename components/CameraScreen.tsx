@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { captureVideoFrame, loadImageFile } from "@/lib/photo";
 import type { ModelStatus } from "@/lib/models";
@@ -76,6 +77,9 @@ export default function CameraScreen({
 
   return (
     <main className="screen camera">
+      <Link href="/history" className="history-link">
+        History
+      </Link>
       <div className="viewfinder">
         {/* playsInline + muted are required for live video on iPhone. */}
         <video

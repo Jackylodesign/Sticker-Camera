@@ -16,6 +16,7 @@ import {
   subscribeModelStatus,
   type ModelStatus,
 } from "@/lib/models";
+import { startAutoUpload } from "@/lib/outbox";
 import { prepareSticker, type PreparedSticker } from "@/lib/sticker";
 
 type Screen =
@@ -29,6 +30,9 @@ export default function Home() {
   const [screen, setScreen] = useState<Screen>({ name: "camera" });
   const [modelStatus, setModelStatus] = useState<ModelStatus>({ state: "loading", loaded: 0, total: 0 });
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Upload any stickers still waiting from last time, and again when back online.
+  useEffect(() => startAutoUpload(), []);
 
   // Other devices: start downloading our AI models as soon as the app opens.
   // iPhone/iPad: never load them (Apple's "Copy Subject" does the cut-out).
@@ -94,7 +98,18 @@ export default function Home() {
       />
     );
   }
-  if (screen.name === "preview") return <PreviewScreen sticker={screen.sticker} onRetake={retake} />;
+  if (screen.name === "preview") {
+    return (
+      <PreviewScreen
+        sticker={screen.sticker}
+        onRetake={retake}
+        onSaved={() => {
+          retake();
+          setNotice("Sticker saved. It uploads in the background. See History.");
+        }}
+      />
+    );
+  }
 
   return (
     <main className="screen centered">
