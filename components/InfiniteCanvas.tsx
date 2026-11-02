@@ -28,12 +28,10 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
   const rootRef = useRef<HTMLDivElement>(null);
   const ids = useMemo(() => stickers.map((s) => s.id), [stickers]);
   const [opened, setOpened] = useState<{ url: string; index: number } | null>(null);
-  const [aboutOpen, setAboutOpen] = useState(false);
+  // About opens on arrival, so visitors read the intro first. They close it
+  // (Explore button, click outside or Esc) to see the stickers.
+  const [aboutOpen, setAboutOpen] = useState(true);
 
-  // /about sends people here with ?about, which opens the panel straight away.
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("about")) setAboutOpen(true);
-  }, []);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -347,6 +345,9 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
             {ABOUT.paragraphs.map((text) => (
               <p key={text}>{withLinks(text)}</p>
             ))}
+            <button type="button" className="about-enter" onClick={() => setAboutOpen(false)} autoFocus>
+              {ABOUT.enter}
+            </button>
             <p className="about-credit">{ABOUT.credit}</p>
           </div>
         </div>

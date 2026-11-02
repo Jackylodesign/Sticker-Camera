@@ -99,6 +99,7 @@ export const ABOUT = {
     "Thank you for visiting.",
   ],
   linkColor: "#5aa9ff", // links in the About panel
+  enter: "Explore the stickers", // button that closes the intro
   credit: "All stickers © Jacky Lo. All rights reserved.",
   // One line for link previews (search results, iMessage, WhatsApp…).
   description: "Sticker Index is a personal collection of everyday things, cut out and kept as stickers.",
