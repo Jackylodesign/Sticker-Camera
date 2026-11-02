@@ -12,9 +12,8 @@
 //   in all at once (no empty frames while loading).
 // Sizes, colours and friction: CANVAS in lib/constants.ts.
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { CANVAS } from "@/lib/constants";
+import { ABOUT, CANVAS } from "@/lib/constants";
 
 type Cell = { el: HTMLDivElement; img: HTMLImageElement; index: number };
 
@@ -25,6 +24,12 @@ const REVEAL_TIMEOUT = 5000; // ms: show the grid anyway if images are this slow
 export default function InfiniteCanvas({ ids }: { ids: string[] }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [opened, setOpened] = useState<string | null>(null); // image URL
+  const [aboutOpen, setAboutOpen] = useState(false);
+
+  // /about sends people here with ?about, which opens the panel straight away.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("about")) setAboutOpen(true);
+  }, []);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -291,13 +296,17 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
     };
   }, [ids]);
 
-  // Esc closes the single-sticker view.
+  // Esc closes the single-sticker view and the About panel.
   useEffect(() => {
-    if (!opened) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpened(null);
+    if (!opened && !aboutOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpened(null);
+      setAboutOpen(false);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [opened]);
+  }, [opened, aboutOpen]);
 
   const vars = {
     background: CANVAS.background,
@@ -314,8 +323,26 @@ export default function InfiniteCanvas({ ids }: { ids: string[] }) {
       </div>
       <header className="canvas-bar" style={{ color: CANVAS.text }}>
         <span className="canvas-bar-title">Sticker</span>
-        <Link href="/about">About</Link>
+        <button
+          type="button"
+          className={aboutOpen ? "is-active" : undefined}
+          aria-expanded={aboutOpen}
+          onClick={() => setAboutOpen((o) => !o)}
+        >
+          About
+        </button>
       </header>
+      {aboutOpen && (
+        // Clicking the blurred background closes it; clicks inside the panel don't.
+        <div className="about-backdrop" onClick={() => setAboutOpen(false)}>
+          <div className="about-panel" role="dialog" aria-label="About" onClick={(e) => e.stopPropagation()}>
+            {ABOUT.paragraphs.map((text) => (
+              <p key={text}>{text}</p>
+            ))}
+            <p className="about-credit">{ABOUT.credit}</p>
+          </div>
+        </div>
+      )}
       {opened && (
         <div className="canvas-overlay" style={vars} onClick={() => setOpened(null)}>
           <img
