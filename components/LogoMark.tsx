@@ -9,7 +9,9 @@ export default function LogoMark({ size = 18 }: { size?: number }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      // 2.4 in a 24px box = 1.8px at 18px, about the stem width of the
+      // 18px Medium wordmark next to it.
+      strokeWidth={2.4}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
