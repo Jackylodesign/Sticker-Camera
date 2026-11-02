@@ -4,6 +4,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Sticker Camera",
   description: "Take a photo, get a sticker.",
+  // Keep every page out of search engines.
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {

@@ -368,11 +368,16 @@ body {
   color: #aaa;
 }
 
-.history-link {
+.top-links {
   position: absolute;
   top: calc(env(safe-area-inset-top) + 12px);
   right: 12px;
   z-index: 1;
+  display: flex;
+  gap: 8px;
+}
+
+.top-links a {
   padding: 8px 12px;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.55);
@@ -453,4 +458,101 @@ body {
   padding: 32px 16px;
   color: #999;
   text-align: center;
+}
+
+/* ---------- Library / Gallery ---------- */
+
+/* Grid pages can be wider than the camera on desktop. */
+.screen.page {
+  max-width: 1200px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.page-header a {
+  color: #fff;
+}
+
+.page-header nav {
+  display: flex;
+  gap: 16px;
+}
+
+.page-header h1 {
+  font-size: 20px;
+}
+
+.sticker-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0 16px;
+  display: grid;
+  /* 2 columns on a phone, more on wider screens */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  align-content: start;
+  gap: 12px;
+}
+
+.sticker-grid li > * {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #fff;
+  background-image: conic-gradient(#ddd 25%, #fff 0 50%, #ddd 0 75%, #fff 0);
+  background-size: 16px 16px;
+}
+
+.sticker-grid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: #34c759;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gallery li > * {
+  background: #222;
+}
+
+/* Gallery images: no iPhone long-press menu ("Save to Photos"), no selecting. */
+.gallery img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.public-note {
+  padding-top: 10px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+.controls.detail-controls {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.button.danger {
+  color: #ff8a80;
 }
