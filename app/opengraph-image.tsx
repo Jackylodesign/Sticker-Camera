@@ -1,10 +1,9 @@
 // The picture shown when someone shares a Sticker Index link (iMessage,
-// WhatsApp, Slack, X…). 1200×630, made from up to 5 public stickers.
+// WhatsApp, Slack, X…). 1200×630: up to 5 public stickers in a row, no text.
 // Only public, small display copies are used, never originals.
 
 import { get } from "@vercel/blob";
 import { ImageResponse } from "next/og";
-import { ABOUT } from "@/lib/constants";
 import { sql } from "@/lib/db";
 
 export const alt = "Sticker Index: a personal collection of everyday things, cut out and kept as stickers.";
@@ -14,31 +13,29 @@ export const contentType = "image/png";
 export const revalidate = 3600;
 
 const BG = "#0e0e0e";
+const STICKER = 200; // px, the box each sticker fits in
 const TILT = [-8, 5, -3, 7, -6]; // degrees, one per sticker
 
 export default async function Image() {
   const stickers = await publicStickerImages(5);
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: BG, color: "#fff", padding: 64 }}>
-        {/* Row of stickers */}
-        <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", gap: 24 }}>
-          {stickers.map((src, i) => (
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 28, background: BG, padding: 48 }}>
+        {stickers.length > 0 ? (
+          // Just the stickers, no text.
+          stickers.map((src, i) => (
             <img
               key={i}
               src={src}
-              width={190}
-              height={190}
+              width={STICKER}
+              height={STICKER}
               style={{ objectFit: "contain", transform: `rotate(${TILT[i % TILT.length]}deg)` }}
             />
-          ))}
-        </div>
-        {/* Name + one line */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Mark size={44} />
-          <div style={{ fontSize: 48, fontWeight: 600, letterSpacing: -1 }}>Sticker Index</div>
-        </div>
-        <div style={{ marginTop: 14, fontSize: 26, color: "rgba(255,255,255,0.6)" }}>{ABOUT.paragraphs[0]}</div>
+          ))
+        ) : (
+          // No public stickers yet: the mark on its own.
+          <Mark size={160} />
+        )}
       </div>
     ),
     size,
@@ -57,7 +54,7 @@ function Mark({ size }: { size: number }) {
 }
 
 // Newest public stickers' display copies, as data URLs. Empty on any error,
-// so the card still renders with just the name.
+// so the card still renders (with just the mark).
 async function publicStickerImages(limit: number): Promise<string[]> {
   try {
     const rows = (await sql`
