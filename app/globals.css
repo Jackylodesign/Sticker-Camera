@@ -575,6 +575,16 @@ body {
   cursor: grabbing;
 }
 
+/* Hidden until the stickers on screen have loaded, then all fade in together. */
+.canvas > * {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+
+.canvas.is-ready > * {
+  opacity: 1;
+}
+
 .canvas .empty {
   color: #666;
 }
@@ -589,6 +599,11 @@ body {
   align-items: center;
   justify-content: center;
   will-change: transform;
+}
+
+/* An <img> with no picture yet would show an empty frame. */
+.canvas-cell img:not([src]) {
+  visibility: hidden;
 }
 
 .canvas-cell img {
