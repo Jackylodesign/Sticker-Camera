@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, isOwner } from "@/auth";
+import FigmaTokens, { type TokenInfo } from "@/components/FigmaTokens";
 import RefreshPublicCopies from "@/components/RefreshPublicCopies";
 import { sql } from "@/lib/db";
 
@@ -16,6 +17,7 @@ export default async function LibraryPage() {
   const rows = (await sql`
     SELECT id, is_public FROM stickers ORDER BY created_at DESC`) as Row[];
   const publicIds = rows.filter((r) => r.is_public).map((r) => r.id);
+  const tokens = await activeTokens();
 
   return (
     <main className="screen page">
@@ -27,6 +29,7 @@ export default async function LibraryPage() {
           <Link href="/canvas">Canvas</Link>
         </nav>
       </header>
+      <FigmaTokens tokens={tokens} />
       {publicIds.length > 0 && (
         <div className="library-tools">
           <RefreshPublicCopies ids={publicIds} />
@@ -48,4 +51,24 @@ export default async function LibraryPage() {
       )}
     </main>
   );
+}
+
+// Tokens that still work. null if the table isn't there yet (SQL not run).
+async function activeTokens(): Promise<TokenInfo[] | null> {
+  try {
+    const rows = (await sql`
+      SELECT id, created_at, last_used_at FROM api_tokens
+      WHERE revoked_at IS NULL ORDER BY created_at DESC`) as {
+      id: string;
+      created_at: Date | string;
+      last_used_at: Date | string | null;
+    }[];
+    return rows.map((r) => ({
+      id: r.id,
+      created_at: new Date(r.created_at).toISOString(),
+      last_used_at: r.last_used_at ? new Date(r.last_used_at).toISOString() : null,
+    }));
+  } catch {
+    return null;
+  }
 }

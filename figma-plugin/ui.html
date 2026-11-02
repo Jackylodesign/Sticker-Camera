@@ -1,0 +1,541 @@
+<!-- Sticker Camera plugin: the window. Plain HTML + JavaScript, no build step.
+     Talks to https://sticker-camera-brown.vercel.app with your personal token,
+     styles the sticker, and sends the PNG bytes to code.js. -->
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font: 12px/1.4 Inter, -apple-system, "Segoe UI", sans-serif;
+    color: var(--figma-color-text, #333);
+    background: var(--figma-color-bg, #fff);
+  }
+  .view { display: flex; flex-direction: column; height: 100vh; }
+  .hidden { display: none !important; }
+  .signin { padding: 16px; gap: 10px; }
+  .signin h1 { font-size: 14px; }
+  .muted { color: var(--figma-color-text-secondary, #777); }
+  input[type="password"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--figma-color-border, #ccc);
+    border-radius: 6px;
+    background: var(--figma-color-bg, #fff);
+    color: inherit;
+    font: 12px ui-monospace, Menlo, monospace;
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid var(--figma-color-border, #ccc);
+    background: var(--figma-color-bg, #fff);
+    color: inherit;
+    padding: 6px 10px;
+  }
+  button.primary {
+    border-color: transparent;
+    background: var(--figma-color-bg-brand, #0d99ff);
+    color: var(--figma-color-text-onbrand, #fff);
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .link { border: none; background: none; padding: 0; text-decoration: underline; }
+  .error { color: var(--figma-color-text-danger, #e03e1a); }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--figma-color-border, #e5e5e5);
+  }
+  .bar label { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .bar .spacer { flex: 1; }
+  .status { padding: 6px 10px; min-height: 28px; }
+  .grid {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* square tiles: (window width - side padding - gaps) / 3 */
+    grid-auto-rows: calc((100vw - 20px - 16px) / 3);
+    gap: 8px;
+    padding: 0 10px 10px;
+    align-content: start;
+  }
+  .tile {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    /* checkerboard, so transparency shows */
+    background-color: #fff;
+    background-image: conic-gradient(#e6e6e6 25%, #fff 0 50%, #e6e6e6 0 75%, #fff 0);
+    background-size: 12px 12px;
+  }
+  .tile canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+  .tile.busy { opacity: 0.5; cursor: progress; }
+  .tile .del {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    line-height: 20px;
+    display: none;
+  }
+  .tile:hover .del { display: block; }
+  .confirm {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    cursor: default;
+  }
+  .confirm button { padding: 3px 8px; background: #fff; color: #333; border-color: transparent; }
+  .confirm .yes { background: #e03e1a; border-color: transparent; color: #fff; }
+</style>
+
+<div id="signin" class="view signin hidden">
+  <h1>Connect to Sticker Camera</h1>
+  <p class="muted">
+    On sticker-camera-brown.vercel.app, open <b>Library → Figma plugin → Generate token</b>,
+    copy it, and paste it here.
+  </p>
+  <input id="token-input" type="password" placeholder="Paste your token" autocomplete="off" />
+  <button id="token-save" class="primary">Connect</button>
+  <p id="signin-error" class="error"></p>
+</div>
+
+<div id="library" class="view hidden">
+  <div class="bar">
+    <label><input type="checkbox" id="opt-border" checked /> White border</label>
+    <label><input type="checkbox" id="opt-shadow" checked /> Shadow</label>
+    <span class="spacer"></span>
+    <button id="refresh" title="Refresh">Refresh</button>
+    <button id="signout" class="link">Sign out</button>
+  </div>
+  <p id="status" class="status muted"></p>
+  <div id="grid" class="grid"></div>
+</div>
+
+<script>
+  var API = "https://sticker-camera-brown.vercel.app";
+  var THUMB_LOADS_AT_ONCE = 6;
+
+  var token = null;
+  var listVersion = 0; // bumps on every refresh, so old thumbnail loads stop
+
+  // ---------- talking to code.js ----------
+  function send(msg) {
+    parent.postMessage({ pluginMessage: msg }, "*");
+  }
+  window.onmessage = function (event) {
+    var msg = event.data && event.data.pluginMessage;
+    if (!msg) return;
+    if (msg.type === "token") {
+      token = msg.token;
+      if (token) showLibrary();
+      else showSignin("");
+    } else if (msg.type === "inserted") {
+      setStatus("Sticker added.");
+    } else if (msg.type === "insert-failed") {
+      setStatus("Couldn't add the sticker: " + msg.message, true);
+    }
+  };
+
+  // ---------- server ----------
+  function ApiError(kind, status) {
+    this.kind = kind; // "auth" | "offline" | "server"
+    this.status = status;
+  }
+
+  async function api(path, options) {
+    var res;
+    try {
+      res = await fetch(API + path, Object.assign({ cache: "no-store" }, options, {
+        headers: { Authorization: "Bearer " + token },
+      }));
+    } catch (e) {
+      throw new ApiError("offline");
+    }
+    if (res.status === 401) throw new ApiError("auth", 401);
+    if (!res.ok && res.status !== 404) throw new ApiError("server", res.status);
+    return res;
+  }
+
+  function friendly(err) {
+    if (err && err.kind === "auth") {
+      return "This token doesn't work. It may be mistyped or revoked. Make a new one in Library → Figma plugin.";
+    }
+    if (err && err.kind === "offline") {
+      return navigator.onLine
+        ? "Can't reach Sticker Camera. Check your internet connection and try again."
+        : "You're offline. Connect to the internet and try again.";
+    }
+    if (err && err.kind === "server") {
+      return "Sticker Camera had a problem (error " + err.status + "). Try again in a moment.";
+    }
+    return (err && err.message) || "Something went wrong. Try again.";
+  }
+
+  // A bad or revoked token sends you back to the sign-in screen.
+  function handleError(err) {
+    if (err && err.kind === "auth") {
+      signOut(friendly(err));
+    } else {
+      setStatus(friendly(err), true);
+    }
+  }
+
+  // ---------- sign in / out ----------
+  var tokenInput = document.getElementById("token-input");
+  var tokenSave = document.getElementById("token-save");
+  var signinError = document.getElementById("signin-error");
+
+  function showSignin(error) {
+    document.getElementById("library").classList.add("hidden");
+    document.getElementById("signin").classList.remove("hidden");
+    signinError.textContent = error;
+    tokenInput.value = "";
+    tokenInput.focus();
+  }
+
+  async function connect() {
+    var pasted = tokenInput.value.trim();
+    if (!pasted) return;
+    tokenSave.disabled = true;
+    signinError.textContent = "Checking…";
+    token = pasted;
+    try {
+      var res = await api("/api/stickers");
+      var stickers = await res.json();
+      send({ type: "save-token", token: token });
+      showLibrary(stickers);
+    } catch (err) {
+      token = null;
+      signinError.textContent = friendly(err);
+    }
+    tokenSave.disabled = false;
+  }
+
+  function signOut(error) {
+    token = null;
+    listVersion++;
+    send({ type: "clear-token" });
+    document.getElementById("grid").textContent = "";
+    showSignin(error || "");
+  }
+
+  tokenSave.onclick = connect;
+  tokenInput.onkeydown = function (e) {
+    if (e.key === "Enter") connect();
+  };
+  document.getElementById("signout").onclick = function () {
+    signOut("");
+  };
+
+  // ---------- library grid ----------
+  var grid = document.getElementById("grid");
+  var statusEl = document.getElementById("status");
+
+  function setStatus(text, isError) {
+    statusEl.textContent = text;
+    statusEl.className = "status " + (isError ? "error" : "muted");
+  }
+
+  // `stickers` is passed when we already have the list (right after connecting).
+  async function showLibrary(stickers) {
+    document.getElementById("signin").classList.add("hidden");
+    document.getElementById("library").classList.remove("hidden");
+    var version = ++listVersion;
+    grid.textContent = "";
+    if (!stickers) {
+      setStatus("Loading…");
+      try {
+        stickers = await (await api("/api/stickers")).json();
+      } catch (err) {
+        if (version === listVersion) handleError(err);
+        return;
+      }
+      if (version !== listVersion) return;
+    }
+    setStatus(stickers.length ? "Click a sticker to add it." : "No stickers yet. Save some from the camera.");
+    var tiles = stickers.map(makeTile); // the server sends newest first
+    loadThumbs(tiles, version);
+  }
+
+  function makeTile(sticker) {
+    var tile = document.createElement("div");
+    tile.className = "tile";
+    tile.title = "Add to Figma";
+    var canvas = document.createElement("canvas");
+    tile.appendChild(canvas);
+
+    var del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "×";
+    del.title = "Delete";
+    del.onclick = function (e) {
+      e.stopPropagation();
+      askDelete(tile, sticker.id);
+    };
+    tile.appendChild(del);
+
+    tile.onclick = function () {
+      insert(tile, sticker.id);
+    };
+    grid.appendChild(tile);
+    return { tile: tile, canvas: canvas, id: sticker.id };
+  }
+
+  // Thumbnails need the token header, so they're fetched (a few at a time)
+  // and drawn into canvases instead of using <img src>.
+  async function loadThumbs(tiles, version) {
+    var next = 0;
+    async function worker() {
+      while (next < tiles.length && version === listVersion) {
+        var t = tiles[next++];
+        try {
+          var res = await api("/api/stickers/" + t.id + "/image?size=thumb");
+          if (!res.ok) continue;
+          var bitmap = await createImageBitmap(await res.blob());
+          t.canvas.width = bitmap.width;
+          t.canvas.height = bitmap.height;
+          t.canvas.getContext("2d").drawImage(bitmap, 0, 0);
+          bitmap.close();
+        } catch (err) {
+          if (version !== listVersion) return;
+          if (err && err.kind === "auth") return handleError(err);
+          setStatus(friendly(err), true);
+        }
+      }
+    }
+    var workers = [];
+    for (var i = 0; i < THUMB_LOADS_AT_ONCE; i++) workers.push(worker());
+    await Promise.all(workers);
+  }
+
+  document.getElementById("refresh").onclick = function () {
+    showLibrary();
+  };
+
+  // ---------- insert ----------
+  async function insert(tile, id) {
+    if (tile.classList.contains("busy") || tile.querySelector(".confirm")) return;
+    tile.classList.add("busy");
+    setStatus("Adding…");
+    try {
+      var res = await api("/api/stickers/" + id + "/image");
+      if (res.status === 404) throw new Error("This sticker no longer exists. Refresh the list.");
+      var bitmap = await createImageBitmap(await res.blob());
+      var cutout = document.createElement("canvas");
+      cutout.width = bitmap.width;
+      cutout.height = bitmap.height;
+      cutout.getContext("2d").drawImage(bitmap, 0, 0);
+      bitmap.close();
+
+      var styled = renderSticker(prepareSticker(cutout), {
+        border: document.getElementById("opt-border").checked,
+        shadow: document.getElementById("opt-shadow").checked,
+      });
+      var png = await new Promise(function (resolve, reject) {
+        styled.toBlob(function (b) {
+          b ? resolve(b) : reject(new Error("PNG export failed"));
+        }, "image/png");
+      });
+      var bytes = new Uint8Array(await png.arrayBuffer());
+      send({ type: "insert", bytes: bytes, width: styled.width, height: styled.height });
+    } catch (err) {
+      handleError(err);
+    }
+    tile.classList.remove("busy");
+  }
+
+  // ---------- delete (with a confirm step) ----------
+  function askDelete(tile, id) {
+    if (tile.querySelector(".confirm")) return;
+    var box = document.createElement("div");
+    box.className = "confirm";
+    box.onclick = function (e) {
+      e.stopPropagation();
+    };
+    var text = document.createElement("span");
+    text.textContent = "Delete forever?";
+    var yes = document.createElement("button");
+    yes.className = "yes";
+    yes.textContent = "Delete";
+    var no = document.createElement("button");
+    no.textContent = "Cancel";
+    no.onclick = function () {
+      box.remove();
+    };
+    yes.onclick = async function () {
+      yes.disabled = no.disabled = true;
+      try {
+        await api("/api/stickers/" + id, { method: "DELETE" }); // 404 = already gone
+        tile.remove();
+        setStatus("Sticker deleted.");
+      } catch (err) {
+        box.remove();
+        handleError(err);
+      }
+    };
+    box.append(text, yes, no);
+    tile.appendChild(box);
+  }
+
+  // ---------- sticker style ----------
+  // COPIED from the web app so the plugin needs no build step:
+  //   STYLE, TRIM_ALPHA_THRESHOLD  ← lib/constants.ts
+  //   prepareSticker, renderSticker, findSubjectBounds, makeBorder, hexToRgb  ← lib/sticker.ts
+  //   distanceTransform2D, edt1d  ← lib/mask.ts
+  // If you change the look there, change it here too.
+  var STYLE = {
+    border: { width: 0.03, color: "#ffffff" },
+    shadow: { color: "rgba(0, 0, 0, 0.35)", blur: 0.03, offsetX: 0, offsetY: 0.015 },
+  };
+  var TRIM_ALPHA_THRESHOLD = 10;
+
+  function prepareSticker(cutout) {
+    var box = findSubjectBounds(cutout);
+    var longSide = Math.max(box.w, box.h);
+    var borderPx = Math.max(1, Math.round(STYLE.border.width * longSide));
+    var shadow = {
+      blur: STYLE.shadow.blur * longSide,
+      offsetX: STYLE.shadow.offsetX * longSide,
+      offsetY: STYLE.shadow.offsetY * longSide,
+    };
+    var pad = Math.ceil(
+      borderPx + shadow.blur * 2 + Math.max(Math.abs(shadow.offsetX), Math.abs(shadow.offsetY)),
+    );
+    var subject = document.createElement("canvas");
+    subject.width = box.w + pad * 2;
+    subject.height = box.h + pad * 2;
+    subject.getContext("2d").drawImage(cutout, box.x, box.y, box.w, box.h, pad, pad, box.w, box.h);
+    return { subject: subject, border: makeBorder(subject, borderPx), shadow: shadow };
+  }
+
+  function renderSticker(p, style) {
+    var out = document.createElement("canvas");
+    out.width = p.subject.width;
+    out.height = p.subject.height;
+    var ctx = out.getContext("2d");
+    var layer = document.createElement("canvas");
+    layer.width = out.width;
+    layer.height = out.height;
+    var lctx = layer.getContext("2d");
+    if (style.border) lctx.drawImage(p.border, 0, 0);
+    lctx.drawImage(p.subject, 0, 0);
+    if (style.shadow) {
+      ctx.shadowColor = STYLE.shadow.color;
+      ctx.shadowBlur = p.shadow.blur;
+      ctx.shadowOffsetX = p.shadow.offsetX;
+      ctx.shadowOffsetY = p.shadow.offsetY;
+    }
+    ctx.drawImage(layer, 0, 0);
+    return out;
+  }
+
+  function findSubjectBounds(c) {
+    var width = c.width, height = c.height;
+    var data = c.getContext("2d").getImageData(0, 0, width, height).data;
+    var minX = width, minY = height, maxX = -1, maxY = -1;
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        if (data[(y * width + x) * 4 + 3] > TRIM_ALPHA_THRESHOLD) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) return { x: 0, y: 0, w: width, h: height };
+    return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  }
+
+  function makeBorder(subject, radius) {
+    var w = subject.width, h = subject.height;
+    var src = subject.getContext("2d").getImageData(0, 0, w, h).data;
+    var INF = 1e20;
+    var dist = new Float32Array(w * h);
+    for (var i = 0; i < w * h; i++) dist[i] = src[i * 4 + 3] >= 128 ? 0 : INF;
+    distanceTransform2D(dist, w, h);
+    var border = document.createElement("canvas");
+    border.width = w;
+    border.height = h;
+    var ctx = border.getContext("2d");
+    var out = ctx.createImageData(w, h);
+    var rgb = hexToRgb(STYLE.border.color);
+    for (var j = 0; j < w * h; j++) {
+      var a = Math.min(1, Math.max(0, radius - Math.sqrt(dist[j]) + 0.5));
+      if (a > 0) {
+        out.data[j * 4] = rgb[0];
+        out.data[j * 4 + 1] = rgb[1];
+        out.data[j * 4 + 2] = rgb[2];
+        out.data[j * 4 + 3] = Math.round(a * 255);
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+    return border;
+  }
+
+  function hexToRgb(hex) {
+    var n = parseInt(hex.replace("#", ""), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function distanceTransform2D(grid, w, h) {
+    var len = Math.max(w, h);
+    var f = new Float64Array(len);
+    var d = new Float64Array(len);
+    var v = new Int32Array(len);
+    var z = new Float64Array(len + 1);
+    for (var x = 0; x < w; x++) {
+      for (var y = 0; y < h; y++) f[y] = grid[y * w + x];
+      edt1d(f, d, v, z, h);
+      for (var y2 = 0; y2 < h; y2++) grid[y2 * w + x] = d[y2];
+    }
+    for (var yy = 0; yy < h; yy++) {
+      for (var xx = 0; xx < w; xx++) f[xx] = grid[yy * w + xx];
+      edt1d(f, d, v, z, w);
+      for (var x2 = 0; x2 < w; x2++) grid[yy * w + x2] = d[x2];
+    }
+  }
+
+  function edt1d(f, d, v, z, n) {
+    var k = 0;
+    v[0] = 0;
+    z[0] = -Infinity;
+    z[1] = Infinity;
+    for (var q = 1; q < n; q++) {
+      var s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      while (s <= z[k]) {
+        k--;
+        s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      }
+      k++;
+      v[k] = q;
+      z[k] = s;
+      z[k + 1] = Infinity;
+    }
+    k = 0;
+    for (var q2 = 0; q2 < n; q2++) {
+      while (z[k + 1] < q2) k++;
+      d[q2] = (q2 - v[k]) * (q2 - v[k]) + f[v[k]];
+    }
+  }
+
+  // Start: ask code.js for the saved token.
+  send({ type: "get-token" });
+</script>

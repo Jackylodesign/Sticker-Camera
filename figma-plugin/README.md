@@ -1,0 +1,58 @@
+# Sticker Camera — Figma plugin (private)
+
+Browse your sticker library inside Figma (or FigJam) and drop stickers into the file,
+with or without the white border and shadow. You can also delete stickers from here.
+
+It's a private development plugin: it is not published, and it only runs on the
+computer where you import it.
+
+## Install in Figma (no coding)
+
+1. **Download the plugin folder.**
+   - On GitHub, open the `Jackylodesign/Sticker-Camera` repository.
+   - Click the green **Code** button → **Download ZIP**.
+   - Unzip it. Inside, the folder you need is `figma-plugin`. You can move it somewhere
+     safe (e.g. your Documents folder) and delete the rest.
+2. **Import it in Figma.** This needs the **Figma desktop app** (not the browser).
+   - Open any design file.
+   - Menu → **Plugins → Development → Import plugin from manifest…**
+   - Pick `manifest.json` inside the `figma-plugin` folder.
+3. **Make a token.**
+   - Open https://sticker-camera-brown.vercel.app/library and sign in.
+   - Open **Figma plugin** → **Generate token** → **Copy**.
+     The token is shown only once. If you lose it, generate a new one.
+4. **Connect.**
+   - In Figma: **Plugins → Development → Sticker Camera**.
+   - Paste the token and click **Connect**. Figma remembers it on this computer.
+
+To update the plugin later, download the ZIP again and replace the folder (same place,
+so Figma keeps finding `manifest.json`).
+
+## Using it
+
+- **Click a sticker** to add it. It lands in the middle of your view, or next to what
+  you have selected, at up to 400px on its longer side.
+- **White border / Shadow** decide how the next sticker is added.
+- **Refresh** reloads the list (e.g. after saving new stickers on your phone).
+- Hover a sticker and click **×** to delete it. It asks first, and deleting is forever
+  (it's gone from your Library too).
+- **Sign out** forgets the token on this computer.
+
+If the plugin says the token doesn't work, it was revoked or mistyped: make a new one
+in Library and paste it again. Revoke tokens you no longer use in Library → Figma plugin.
+
+## For developers
+
+- Plain JavaScript, no build step: `manifest.json`, `code.js` (Figma main thread) and
+  `ui.html` (the plugin window). Edit them directly; there is nothing to rebuild.
+  In Figma, re-run the plugin to pick up changes.
+- The window fetches from `https://sticker-camera-brown.vercel.app` with
+  `Authorization: Bearer <token>`. That domain is the only one allowed in
+  `manifest.json` → `networkAccess`.
+- The server accepts the token only on: `GET /api/stickers`,
+  `GET /api/stickers/[id]/image` (and `?size=thumb`), and `DELETE /api/stickers/[id]`.
+  See `requireOwnerOrToken` in `lib/owner.ts` and `isTokenRoute` in `lib/cors.ts`.
+- The border/shadow code in `ui.html` is a copy of `lib/sticker.ts`, `lib/mask.ts`
+  and `STYLE` in `lib/constants.ts`. If you change the look there, copy it here too.
+- The token is kept in `figma.clientStorage` (only on this computer); the server stores
+  only its SHA-256 hash.

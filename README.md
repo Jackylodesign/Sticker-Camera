@@ -12,6 +12,8 @@ Then open http://localhost:3000. On a computer without a camera, use **Choose fr
 
 Sticker border and shadow settings live in `lib/constants.ts`.
 
+There is also a private Figma plugin: see [`figma-plugin/README.md`](figma-plugin/README.md).
+
 ## Setup (sign-in, storage, database)
 
 Do these once. Nothing here is created automatically.

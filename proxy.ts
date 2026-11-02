@@ -1,5 +1,6 @@
 // Runs before every page and API request: signed-out visitors are sent to
-// /signin (pages) or get a 401 (API). /gallery and /canvas are the public exceptions.
+// /signin (pages) or get a 401 (API). /gallery and /canvas are the public exceptions;
+// a few APIs also let Figma plugin token requests through to the route.
 // See `authorized` in auth.ts.
 export { auth as proxy } from "@/auth";
 

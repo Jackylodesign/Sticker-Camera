@@ -1,4 +1,4 @@
-// Creates the `stickers` table (and adds newer columns). Safe to run more than once.
+// Creates the `stickers` and `api_tokens` tables (and adds newer columns). Safe to run more than once.
 // Run: npm run db:setup   (reads DATABASE_URL from .env.local)
 
 import { neon } from "@neondatabase/serverless";
@@ -24,5 +24,16 @@ await sql`CREATE INDEX IF NOT EXISTS stickers_created_at_idx ON stickers (create
 // Stage 3: the small watermarked copy shown in the public gallery (only set
 // while the sticker is public).
 await sql`ALTER TABLE stickers ADD COLUMN IF NOT EXISTS display_pathname text`;
+// Stage 4: personal API tokens for the Figma plugin. Only a SHA-256 hash of
+// each token is stored.
+await sql`
+  CREATE TABLE IF NOT EXISTS api_tokens (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    token_hash   text NOT NULL UNIQUE,
+    label        text NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    last_used_at timestamptz,
+    revoked_at   timestamptz
+  )`;
 
-console.log("Database is ready: table `stickers` exists.");
+console.log("Database is ready: tables `stickers` and `api_tokens` exist.");
