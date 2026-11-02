@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// About now opens as a panel over the canvas. Keep /about working as a link.
+// About opens as a panel over the canvas on the home page. Keep /about working as a link.
 export default function AboutPage() {
-  redirect("/canvas?about");
+  redirect("/?about");
 }

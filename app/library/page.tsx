@@ -22,11 +22,11 @@ export default async function LibraryPage() {
   return (
     <main className="screen page">
       <header className="page-header">
-        <Link href="/">‹ Camera</Link>
+        <Link href="/camera">‹ Camera</Link>
         <nav>
           <Link href="/history">History</Link>
           <Link href="/gallery">Gallery</Link>
-          <Link href="/canvas">Canvas</Link>
+          <Link href="/">Canvas</Link>
         </nav>
       </header>
       <FigmaTokens tokens={tokens} />

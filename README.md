@@ -36,10 +36,10 @@ Do these once. Nothing here is created automatically.
 1. **OAuth consent screen:** type *External*. Under *Test users*, add your own Google email.
 2. **Credentials → Create credentials → OAuth client ID → Web application.**
    - Authorized JavaScript origins:
-     - `https://sticker-camera-brown.vercel.app`
+     - `https://stickerindex.page`
      - `http://localhost:3000`
    - Authorized redirect URIs:
-     - `https://sticker-camera-brown.vercel.app/api/auth/callback/google`
+     - `https://stickerindex.page/api/auth/callback/google`
      - `http://localhost:3000/api/auth/callback/google`
    - Preview deployments need no extra URIs: they sign in through the production domain
      (see `AUTH_REDIRECT_PROXY_URL` below).
@@ -55,7 +55,7 @@ Set each one for **Production** and **Preview**:
 | `AUTH_GOOGLE_ID` | Google Client ID |
 | `AUTH_GOOGLE_SECRET` | Google Client secret |
 | `OWNER_EMAIL` | your Google email (the only account allowed in) |
-| `AUTH_REDIRECT_PROXY_URL` | `https://sticker-camera-brown.vercel.app/api/auth` |
+| `AUTH_REDIRECT_PROXY_URL` | `https://stickerindex.page/api/auth` |
 
 `DATABASE_URL` and `BLOB_READ_WRITE_TOKEN` are already there from step 1.
 Then redeploy (Deployments → ⋯ → Redeploy) so the new values are used.

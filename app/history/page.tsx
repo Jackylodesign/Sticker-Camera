@@ -8,7 +8,7 @@ export default function HistoryPage() {
   return (
     <main className="screen history">
       <header>
-        <Link href="/">‹ Camera</Link>
+        <Link href="/camera">‹ Camera</Link>
         <Link href="/library">Library</Link>
         <form
           action={async () => {
