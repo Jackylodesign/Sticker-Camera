@@ -2,53 +2,125 @@
      Talks to https://sticker-camera-brown.vercel.app with your personal token,
      styles the sticker, and sends the PNG bytes to code.js. -->
 <style>
+  /* Looks like Figma's own panels: Figma's colour variables (light + dark),
+     11px Inter, quiet borders, icon buttons. */
   * { box-sizing: border-box; margin: 0; }
+  :root {
+    --bg: var(--figma-color-bg, #fff);
+    --bg-2: var(--figma-color-bg-secondary, #f5f5f5);
+    --bg-hover: var(--figma-color-bg-hover, #f0f0f0);
+    --bg-brand: var(--figma-color-bg-brand, #0d99ff);
+    --bg-brand-soft: var(--figma-color-bg-selected, #e5f4ff);
+    --text: var(--figma-color-text, #1e1e1e);
+    --text-2: var(--figma-color-text-secondary, #757575);
+    --text-brand: var(--figma-color-text-brand, #007be5);
+    --text-onbrand: var(--figma-color-text-onbrand, #fff);
+    --text-danger: var(--figma-color-text-danger, #dc3412);
+    --border: var(--figma-color-border, #e6e6e6);
+    --border-brand: var(--figma-color-border-brand-strong, #0d99ff);
+    --radius: 6px;
+  }
   body {
-    font: 12px/1.4 Inter, -apple-system, "Segoe UI", sans-serif;
-    color: var(--figma-color-text, #333);
-    background: var(--figma-color-bg, #fff);
+    font: 11px/16px Inter, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
   }
   .view { display: flex; flex-direction: column; height: 100vh; }
   .hidden { display: none !important; }
-  .signin { padding: 16px; gap: 10px; }
-  .signin h1 { font-size: 14px; }
-  .muted { color: var(--figma-color-text-secondary, #777); }
-  input[type="password"] {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--figma-color-border, #ccc);
-    border-radius: 6px;
-    background: var(--figma-color-bg, #fff);
-    color: inherit;
-    font: 12px ui-monospace, Menlo, monospace;
-  }
+  svg { display: block; flex: none; }
+
   button {
     font: inherit;
-    cursor: pointer;
-    border-radius: 6px;
-    border: 1px solid var(--figma-color-border, #ccc);
-    background: var(--figma-color-bg, #fff);
     color: inherit;
-    padding: 6px 10px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    height: 28px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
   }
-  button.primary {
-    border-color: transparent;
-    background: var(--figma-color-bg-brand, #0d99ff);
-    color: var(--figma-color-text-onbrand, #fff);
+  button:hover:not(:disabled) { background: var(--bg-hover); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.icon { width: 28px; padding: 0; justify-content: center; }
+  button.primary { background: var(--bg-brand); color: var(--text-onbrand); font-weight: 500; padding: 0 12px; }
+  button.primary:hover:not(:disabled) { background: var(--bg-brand); filter: brightness(0.95); }
+  button.secondary { border: 1px solid var(--border); }
+  button[aria-pressed="true"] { background: var(--bg-brand-soft); color: var(--text-brand); }
+
+  /* ---------- sign in ---------- */
+  .signin { padding: 24px 16px; gap: 12px; justify-content: center; }
+  .signin .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--bg-2); display: grid; place-items: center; color: var(--text-2);
   }
-  button:disabled { opacity: 0.5; cursor: default; }
-  .link { border: none; background: none; padding: 0; text-decoration: underline; }
-  .error { color: var(--figma-color-text-danger, #e03e1a); }
-  .bar {
+  .signin h1 { font-size: 13px; line-height: 20px; font-weight: 600; }
+  .signin p { color: var(--text-2); }
+  .signin b { color: var(--text); font-weight: 500; }
+  input[type="password"] {
+    width: 100%;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: inherit;
+    font: 11px ui-monospace, Menlo, monospace;
+    outline: none;
+  }
+  input[type="password"]:focus { border-color: var(--border-brand); box-shadow: 0 0 0 1px var(--border-brand); }
+  .signin button.primary { height: 32px; justify-content: center; }
+  .error { color: var(--text-danger); }
+
+  /* ---------- header ---------- */
+  .header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--figma-color-border, #e5e5e5);
+    gap: 2px;
+    padding: 8px 8px 8px 12px;
   }
-  .bar label { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-  .bar .spacer { flex: 1; }
-  .status { padding: 6px 10px; min-height: 28px; }
+  .header h2 { font-size: 11px; font-weight: 600; }
+  .header .count { color: var(--text-2); margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .spacer { flex: 1; }
+
+  /* Style chips: the checkboxes are kept (the script reads .checked) but hidden. */
+  .styles { display: flex; gap: 6px; padding: 0 12px 8px; }
+  .chip { position: relative; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px 0 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip span::before {
+    content: "";
+    width: 8px; height: 8px; border-radius: 50%;
+    border: 1px solid currentColor;
+  }
+  .chip input:checked + span { background: var(--bg-brand-soft); border-color: transparent; color: var(--text-brand); }
+  .chip input:checked + span::before { background: currentColor; }
+  .chip input:focus-visible + span { box-shadow: 0 0 0 2px var(--border-brand); }
+
+  .status {
+    padding: 0 12px 8px;
+    min-height: 24px;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .status.error { color: var(--text-danger); }
+
+  /* ---------- grid ---------- */
   .grid {
     flex: 1;
     overflow-y: auto;
@@ -56,22 +128,28 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     /* square tiles: (window width - side padding - gaps) / 3 */
-    grid-auto-rows: calc((100vw - 20px - 16px) / 3);
+    grid-auto-rows: calc((100vw - 24px - 16px) / 3);
     gap: 8px;
-    padding: 0 10px 10px;
+    padding: 12px;
     align-content: start;
   }
   .tile {
     position: relative;
-    border-radius: 6px;
+    border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
-    /* checkerboard, so transparency shows */
-    background-color: #fff;
-    background-image: conic-gradient(#e6e6e6 25%, #fff 0 50%, #e6e6e6 0 75%, #fff 0);
-    background-size: 12px 12px;
+    background: var(--bg-2);
+    transition: box-shadow 0.12s;
   }
-  .tile canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+  .tile:hover { box-shadow: inset 0 0 0 1px var(--border); }
+  .tile canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; padding: 10px;
+    transition: transform 0.15s;
+  }
+  .tile:hover canvas { transform: scale(1.04); }
+  .tile.loading { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.5; } }
   .tile.busy { opacity: 0.5; cursor: progress; }
   .tile .del {
     position: absolute;
@@ -80,14 +158,18 @@
     width: 20px;
     height: 20px;
     padding: 0;
-    border-radius: 50%;
-    border: none;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    line-height: 20px;
-    display: none;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text-2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: opacity 0.12s;
   }
-  .tile:hover .del { display: block; }
+  .tile:hover .del { opacity: 1; }
+  .tile .del:hover { color: var(--text-danger); background: var(--bg); }
+  .empty { grid-column: 1 / -1; padding: 32px 0; text-align: center; color: var(--text-2); }
+
   .confirm {
     position: absolute;
     inset: 0;
@@ -97,19 +179,54 @@
     justify-content: center;
     gap: 6px;
     z-index: 1;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.72);
     color: #fff;
     cursor: default;
   }
-  .confirm button { padding: 3px 8px; background: #fff; color: #333; border-color: transparent; }
-  .confirm .yes { background: #e03e1a; border-color: transparent; color: #fff; }
+  .confirm .row { display: flex; gap: 4px; }
+  .confirm button { height: 24px; padding: 0 8px; background: rgba(255, 255, 255, 0.15); color: #fff; }
+  .confirm button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.25); }
+  .confirm .yes { background: #f24822; }
+  .confirm .yes:hover:not(:disabled) { background: #f24822; filter: brightness(1.1); }
+
+  /* ---------- select mode ---------- */
+  .selecting .tile .del { display: none; }
+  .tile .check {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-2);
+    background: var(--bg);
+    display: none;
+    place-items: center;
+    color: var(--text-onbrand);
+  }
+  .selecting .tile .check { display: grid; }
+  .tile.picked { box-shadow: inset 0 0 0 2px var(--border-brand); background: var(--bg-brand-soft); }
+  .tile.picked .check { background: var(--bg-brand); border-color: var(--bg-brand); }
+  .tile .check svg { display: none; }
+  .tile.picked .check svg { display: block; }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 8px 8px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .actions .picked-count { color: var(--text-2); margin-right: 4px; font-variant-numeric: tabular-nums; }
 </style>
 
 <div id="signin" class="view signin hidden">
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+  </div>
   <h1>Connect to Sticker Camera</h1>
-  <p class="muted">
-    On sticker-camera-brown.vercel.app, open <b>Library → Figma plugin → Generate token</b>,
-    copy it, and paste it here.
+  <p>
+    In your Library, open <b>Figma plugin → Generate token</b>, copy it, and paste it here.
   </p>
   <input id="token-input" type="password" placeholder="Paste your token" autocomplete="off" />
   <button id="token-save" class="primary">Connect</button>
@@ -117,15 +234,33 @@
 </div>
 
 <div id="library" class="view hidden">
-  <div class="bar">
-    <label><input type="checkbox" id="opt-border" checked /> White border</label>
-    <label><input type="checkbox" id="opt-shadow" checked /> Shadow</label>
+  <div class="header">
+    <h2>Stickers</h2><span id="count" class="count"></span>
     <span class="spacer"></span>
-    <button id="refresh" title="Refresh">Refresh</button>
-    <button id="signout" class="link">Sign out</button>
+    <button id="select-mode" class="secondary" aria-pressed="false" title="Pick several stickers">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5.5 8.2l1.8 1.8 3.3-3.6"/></svg>
+      <span>Select</span>
+    </button>
+    <button id="refresh" class="icon" title="Refresh">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 1 1-1.5-3.55"/><path d="M13 2.5v3h-3"/></svg>
+    </button>
+    <button id="signout" class="icon" title="Sign out">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3H3.5v10H6"/><path d="M10 5l3 3-3 3"/><path d="M13 8H6.5"/></svg>
+    </button>
   </div>
-  <p id="status" class="status muted"></p>
+  <div class="styles">
+    <label class="chip"><input type="checkbox" id="opt-border" checked /><span>White border</span></label>
+    <label class="chip"><input type="checkbox" id="opt-shadow" checked /><span>Shadow</span></label>
+  </div>
+  <p id="status" class="status"></p>
   <div id="grid" class="grid"></div>
+  <div id="actions" class="actions hidden">
+    <span id="picked-count" class="picked-count">0 selected</span>
+    <button id="select-all">Select all</button>
+    <button id="select-none">Clear</button>
+    <span class="spacer"></span>
+    <button id="add-selected" class="primary" disabled>Add</button>
+  </div>
 </div>
 
 <script>
@@ -147,7 +282,7 @@
       if (token) showLibrary();
       else showSignin("");
     } else if (msg.type === "inserted") {
-      setStatus("Sticker added.");
+      setStatus(msg.count > 1 ? msg.count + " stickers added." : "Sticker added.");
     } else if (msg.type === "insert-failed") {
       setStatus("Couldn't add the sticker: " + msg.message, true);
     }
@@ -259,6 +394,8 @@
     document.getElementById("library").classList.remove("hidden");
     var version = ++listVersion;
     grid.textContent = "";
+    tiles = [];
+    updateSelection();
     if (!stickers) {
       setStatus("Loading…");
       try {
@@ -269,21 +406,42 @@
       }
       if (version !== listVersion) return;
     }
-    setStatus(stickers.length ? "Click a sticker to add it." : "No stickers yet. Save some from the camera.");
-    var tiles = stickers.map(makeTile); // the server sends newest first
+    tiles = stickers.map(makeTile); // the server sends newest first
+    updateCount();
+    if (!stickers.length) {
+      var empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "No stickers yet. Save some from the camera.";
+      grid.appendChild(empty);
+    }
+    setStatus(stickers.length ? hint() : "");
     loadThumbs(tiles, version);
+  }
+
+  function updateCount() {
+    var n = tiles.filter(function (t) { return t.tile.isConnected; }).length;
+    document.getElementById("count").textContent = n ? String(n) : "";
+  }
+
+  function hint() {
+    return selecting ? "Tap stickers to pick them, then Add." : "Click a sticker to add it.";
   }
 
   function makeTile(sticker) {
     var tile = document.createElement("div");
-    tile.className = "tile";
+    tile.className = "tile loading";
     tile.title = "Add to Figma";
     var canvas = document.createElement("canvas");
     tile.appendChild(canvas);
 
+    var check = document.createElement("span");
+    check.className = "check";
+    check.innerHTML = ICON_CHECK;
+    tile.appendChild(check);
+
     var del = document.createElement("button");
     del.className = "del";
-    del.textContent = "×";
+    del.innerHTML = ICON_TRASH;
     del.title = "Delete";
     del.onclick = function (e) {
       e.stopPropagation();
@@ -291,12 +449,70 @@
     };
     tile.appendChild(del);
 
+    var entry = { tile: tile, canvas: canvas, id: sticker.id };
     tile.onclick = function () {
-      insert(tile, sticker.id);
+      if (tile.querySelector(".confirm")) return;
+      if (selecting) {
+        tile.classList.toggle("picked");
+        updateSelection();
+      } else {
+        insert([entry]);
+      }
     };
     grid.appendChild(tile);
-    return { tile: tile, canvas: canvas, id: sticker.id };
+    return entry;
   }
+
+  var ICON_CHECK =
+    '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2l2 2 4-4.4"/></svg>';
+  var ICON_TRASH =
+    '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h8M4.5 3V2h3v1M3 3l.5 7h5L9 3"/></svg>';
+
+  // ---------- select several ----------
+  var tiles = []; // the tiles currently in the grid
+  var selecting = false;
+  var selectModeBtn = document.getElementById("select-mode");
+  var actions = document.getElementById("actions");
+  var addSelectedBtn = document.getElementById("add-selected");
+
+  function pickedTiles() {
+    return tiles.filter(function (t) {
+      return t.tile.isConnected && t.tile.classList.contains("picked");
+    });
+  }
+
+  function updateSelection() {
+    var n = pickedTiles().length;
+    document.getElementById("picked-count").textContent = n + " selected";
+    addSelectedBtn.textContent = n ? "Add " + n : "Add";
+    addSelectedBtn.disabled = n === 0 || adding;
+  }
+
+  function setSelecting(on) {
+    selecting = on;
+    grid.classList.toggle("selecting", on);
+    actions.classList.toggle("hidden", !on);
+    selectModeBtn.setAttribute("aria-pressed", String(on));
+    selectModeBtn.querySelector("span").textContent = on ? "Done" : "Select";
+    if (!on) tiles.forEach(function (t) { t.tile.classList.remove("picked"); });
+    updateSelection();
+    if (tiles.length) setStatus(hint());
+  }
+
+  selectModeBtn.onclick = function () {
+    setSelecting(!selecting);
+  };
+  document.getElementById("select-all").onclick = function () {
+    tiles.forEach(function (t) { if (t.tile.isConnected) t.tile.classList.add("picked"); });
+    updateSelection();
+  };
+  document.getElementById("select-none").onclick = function () {
+    tiles.forEach(function (t) { t.tile.classList.remove("picked"); });
+    updateSelection();
+  };
+  addSelectedBtn.onclick = function () {
+    insert(pickedTiles());
+  };
 
   // Thumbnails need the token header, so they're fetched (a few at a time)
   // and drawn into canvases instead of using <img src>.
@@ -313,6 +529,7 @@
           t.canvas.height = bitmap.height;
           t.canvas.getContext("2d").drawImage(bitmap, 0, 0);
           bitmap.close();
+          t.tile.classList.remove("loading");
         } catch (err) {
           if (version !== listVersion) return;
           if (err && err.kind === "auth") return handleError(err);
@@ -330,35 +547,52 @@
   };
 
   // ---------- insert ----------
-  async function insert(tile, id) {
-    if (tile.classList.contains("busy") || tile.querySelector(".confirm")) return;
-    tile.classList.add("busy");
-    setStatus("Adding…");
-    try {
-      var res = await api("/api/stickers/" + id + "/image");
-      if (res.status === 404) throw new Error("This sticker no longer exists. Refresh the list.");
-      var bitmap = await createImageBitmap(await res.blob());
-      var cutout = document.createElement("canvas");
-      cutout.width = bitmap.width;
-      cutout.height = bitmap.height;
-      cutout.getContext("2d").drawImage(bitmap, 0, 0);
-      bitmap.close();
+  var adding = false;
 
-      var styled = renderSticker(prepareSticker(cutout), {
-        border: document.getElementById("opt-border").checked,
-        shadow: document.getElementById("opt-shadow").checked,
-      });
-      var png = await new Promise(function (resolve, reject) {
-        styled.toBlob(function (b) {
-          b ? resolve(b) : reject(new Error("PNG export failed"));
-        }, "image/png");
-      });
-      var bytes = new Uint8Array(await png.arrayBuffer());
-      send({ type: "insert", bytes: bytes, width: styled.width, height: styled.height });
+  // Fetches, styles and sends one or more stickers. Several are sent together
+  // so code.js can lay them out in a neat grid.
+  async function insert(entries) {
+    if (adding || !entries.length) return;
+    adding = true;
+    updateSelection();
+    var style = {
+      border: document.getElementById("opt-border").checked,
+      shadow: document.getElementById("opt-shadow").checked,
+    };
+    entries.forEach(function (e) { e.tile.classList.add("busy"); });
+    var items = [];
+    try {
+      for (var i = 0; i < entries.length; i++) {
+        setStatus(entries.length > 1 ? "Preparing " + (i + 1) + " of " + entries.length + "…" : "Adding…");
+        items.push(await styledPng(entries[i].id, style));
+      }
+      send({ type: "insert", items: items });
+      if (selecting) setSelecting(false);
     } catch (err) {
       handleError(err);
     }
-    tile.classList.remove("busy");
+    entries.forEach(function (e) { e.tile.classList.remove("busy"); });
+    adding = false;
+    updateSelection();
+  }
+
+  async function styledPng(id, style) {
+    var res = await api("/api/stickers/" + id + "/image");
+    if (res.status === 404) throw new Error("A sticker no longer exists. Refresh the list.");
+    var bitmap = await createImageBitmap(await res.blob());
+    var cutout = document.createElement("canvas");
+    cutout.width = bitmap.width;
+    cutout.height = bitmap.height;
+    cutout.getContext("2d").drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    var styled = renderSticker(prepareSticker(cutout), style);
+    var png = await new Promise(function (resolve, reject) {
+      styled.toBlob(function (b) {
+        b ? resolve(b) : reject(new Error("PNG export failed"));
+      }, "image/png");
+    });
+    return { bytes: new Uint8Array(await png.arrayBuffer()), width: styled.width, height: styled.height };
   }
 
   // ---------- delete (with a confirm step) ----------
@@ -384,13 +618,18 @@
       try {
         await api("/api/stickers/" + id, { method: "DELETE" }); // 404 = already gone
         tile.remove();
+        updateSelection();
+        updateCount();
         setStatus("Sticker deleted.");
       } catch (err) {
         box.remove();
         handleError(err);
       }
     };
-    box.append(text, yes, no);
+    var row = document.createElement("div");
+    row.className = "row";
+    row.append(no, yes);
+    box.append(text, row);
     tile.appendChild(box);
   }
 
