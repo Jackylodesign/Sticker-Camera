@@ -345,7 +345,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
         <div className="about-backdrop" onClick={() => setAboutOpen(false)}>
           <div className="about-panel" role="dialog" aria-label="About" onClick={(e) => e.stopPropagation()}>
             {ABOUT.paragraphs.map((text) => (
-              <p key={text}>{text}</p>
+              <p key={text}>{withLinks(text)}</p>
             ))}
             <p className="about-credit">{ABOUT.credit}</p>
           </div>
@@ -371,6 +371,19 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
 function caption(s: PublicSticker | undefined) {
   if (!s) return null;
   return [formatDay(s.day), s.area].filter(Boolean).join(" · ");
+}
+
+/** Turns "[label](https://…)" inside About text into links (new tab). */
+function withLinks(text: string) {
+  return text.split(/(\[[^\]]+\]\(https?:\/\/[^)\s]+\))/).map((part, i) => {
+    const m = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/.exec(part);
+    if (!m) return part;
+    return (
+      <a key={i} href={m[2]} target="_blank" rel="noopener noreferrer" style={{ color: ABOUT.linkColor }}>
+        {m[1]}
+      </a>
+    );
+  });
 }
 
 /** Modulo that stays positive for negative numbers: mod(-1, 3) = 2. */

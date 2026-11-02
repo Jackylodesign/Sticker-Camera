@@ -711,6 +711,17 @@ body {
   animation: about-rise 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Links: coloured (ABOUT.linkColor), underline on hover so it reads as clickable. */
+.about-panel a {
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.about-panel a:hover,
+.about-panel a:focus-visible {
+  text-decoration: underline;
+}
+
 .about-panel p + p {
   margin-top: 0.9em;
 }
