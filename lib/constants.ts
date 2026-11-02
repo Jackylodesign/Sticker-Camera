@@ -93,8 +93,8 @@ export const WATERMARK = {
 // Text in the About panel on the public canvas. Edit freely.
 export const ABOUT = {
   paragraphs: [
-    "This project is inspired by Andy Warhol’s Time Capsules. Through everyday objects, I’m capturing the meaning of time, memory and space.",
-    "Each object you see here is something I interacted with at a certain time, somewhere — a moment that gave it a new meaning in my life.",
+    "This project is inspired by Andy Warhol’s Time Capsules. I’m capturing the meaning of time, memory and space through everyday objects.",
+    "Each object you see here is something I interacted with at a certain time in somewhere. It could mean nothing but something to me.",
     "Thank you for visiting.",
   ],
   credit: "All stickers © Jacky Lo. All rights reserved.",
