@@ -630,11 +630,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: max(16px, env(safe-area-inset-top)) 20px 16px;
-  font-size: 14px;
-  letter-spacing: 0.01em;
+  /* Phone: 16px edges (plus the notch area); desktop: 24px. */
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 16px
+    max(16px, env(safe-area-inset-left));
+  font-size: 16px;
+  line-height: 20px;
   pointer-events: none;
   z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .canvas-bar {
+    padding: 24px;
+  }
+}
+
+/* Wordmark: a step bigger and heavier than the links. */
+.canvas-bar-title {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .canvas-bar a,
@@ -648,13 +663,16 @@ body {
   padding: 0;
   cursor: pointer;
   pointer-events: auto;
-  opacity: 0.8;
+  /* 44px-tall tap area (Apple's minimum) without moving the text. */
+  padding: 12px 8px;
+  margin: -12px -8px;
+  text-underline-offset: 4px;
 }
 
 .canvas-bar a:hover,
 .canvas-bar button:hover,
 .canvas-bar .is-active {
-  opacity: 1;
+  text-decoration: underline;
 }
 
 /* ---------- About panel (glassy, over a blurred canvas) ---------- */
