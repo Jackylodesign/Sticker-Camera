@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // Lets share previews and icons use full https://stickerindex.page URLs.
+  metadataBase: new URL("https://stickerindex.page"),
   title: "Sticker Camera",
   description: "Take a photo, get a sticker.",
   // Keep every page out of search engines.

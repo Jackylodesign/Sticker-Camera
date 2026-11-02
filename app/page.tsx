@@ -1,9 +1,16 @@
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import InfiniteCanvas from "@/components/InfiniteCanvas";
-import { CANVAS } from "@/lib/constants";
+import { ABOUT, CANVAS } from "@/lib/constants";
 import { publicStickerIds } from "@/lib/db";
 
-export const metadata = { title: "Sticker Index" };
+// What link previews show (the picture comes from app/opengraph-image.tsx).
+const description = ABOUT.paragraphs[0];
+export const metadata: Metadata = {
+  title: "Sticker Index",
+  description,
+  openGraph: { type: "website", url: "/", siteName: "Sticker Index", title: "Sticker Index", description },
+  twitter: { card: "summary_large_image", title: "Sticker Index", description },
+};
 export const viewport: Viewport = { themeColor: CANVAS.background };
 // Always read the database, so a sticker made private disappears at once.
 export const dynamic = "force-dynamic";
