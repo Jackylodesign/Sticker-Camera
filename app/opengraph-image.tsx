@@ -1,9 +1,10 @@
 // The picture shown when someone shares a Sticker Index link (iMessage,
-// WhatsApp, Slack, X…). 1200×630: up to 5 public stickers in a row, no text.
+// WhatsApp, Slack, X…). 1200×630: a slice of the infinite canvas, no text.
 // Only public, small display copies are used, never originals.
 
 import { get } from "@vercel/blob";
 import { ImageResponse } from "next/og";
+import { CANVAS } from "@/lib/constants";
 import { sql } from "@/lib/db";
 
 export const alt = "Sticker Index: a personal collection of everyday things, cut out and kept as stickers.";
@@ -12,34 +13,58 @@ export const contentType = "image/png";
 // Remake it at most once an hour, so new public stickers show up.
 export const revalidate = 3600;
 
-const BG = "#0e0e0e";
-const STICKER = 200; // px, the box each sticker fits in
-const TILT = [-8, 5, -3, 7, -6]; // degrees, one per sticker
+// The canvas grid at ~80% scale, so a few rows fit the card.
+const CELL = Math.round(CANVAS.cellSize * 0.8);
+const GAP = Math.round(CANVAS.gap * 0.8);
 
 export default async function Image() {
-  const stickers = await publicStickerImages(5);
+  const stickers = await publicStickerImages(12);
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 28, background: BG, padding: 48 }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", overflow: "hidden", background: CANVAS.background }}>
         {stickers.length > 0 ? (
-          // Just the stickers, no text.
-          stickers.map((src, i) => (
+          // A slice of the infinite canvas: same grid, same repeat order, cut
+          // off at the edges so it reads as "this keeps going".
+          gridCells(stickers.length).map(({ x, y, index }) => (
             <img
-              key={i}
-              src={src}
-              width={STICKER}
-              height={STICKER}
-              style={{ objectFit: "contain", transform: `rotate(${TILT[i % TILT.length]}deg)` }}
+              key={`${x},${y}`}
+              src={stickers[index]}
+              width={CELL}
+              height={CELL}
+              style={{ position: "absolute", left: x, top: y, objectFit: "contain", padding: (CELL * (1 - CANVAS.stickerSize)) / 2 }}
             />
           ))
         ) : (
           // No public stickers yet: the mark on its own.
-          <Mark size={160} />
+          <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
+            <Mark size={160} />
+          </div>
         )}
       </div>
     ),
     size,
   );
+}
+
+// Grid cells covering the image, laid out like components/InfiniteCanvas.tsx:
+// sticker 0 sits in the middle and each row starts further along the list.
+function gridCells(n: number) {
+  const pitch = CELL + GAP;
+  const cols = Math.ceil(Math.sqrt(n));
+  const shift = cols % n === 0 ? cols + 1 : cols;
+  const ox = (size.width - pitch) / 2;
+  const oy = (size.height - pitch) / 2;
+  const cells: { x: number; y: number; index: number }[] = [];
+  for (let r = Math.floor(-oy / pitch) - 1; r * pitch + oy < size.height; r++) {
+    for (let c = Math.floor(-ox / pitch) - 1; c * pitch + ox < size.width; c++) {
+      cells.push({ x: c * pitch + ox + GAP / 2, y: r * pitch + oy + GAP / 2, index: mod(c + r * shift, n) });
+    }
+  }
+  return cells;
+}
+
+function mod(a: number, b: number) {
+  return ((a % b) + b) % b;
 }
 
 // Same drawing as components/LogoMark.tsx (kept separate: this one runs in
