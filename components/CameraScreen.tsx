@@ -119,7 +119,8 @@ export default function CameraScreen({
       <div className="controls">
         <label className="button secondary">
           Choose from library
-          <input type="file" accept="image/*" onChange={pickFile} hidden />
+          {/* Visually hidden, not `hidden`, so the keyboard can still reach it. */}
+          <input type="file" accept="image/*" onChange={pickFile} className="visually-hidden" />
         </label>
         <button className="shutter" onClick={shoot} disabled={!ready} aria-label="Take photo" />
         <button

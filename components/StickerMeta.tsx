@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PlaceResult } from "@/lib/geocode";
 import { currentPosition } from "@/lib/location";
 import { errorMessage } from "@/lib/outbox";
@@ -24,6 +24,13 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
   const [message, setMessage] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[] | null>(null);
+  const resultsRef = useRef<HTMLUListElement>(null);
+
+  // Searching disables the field, which drops keyboard focus. Put it on the
+  // first result, so the list can be used straight away.
+  useEffect(() => {
+    if (results?.length) resultsRef.current?.querySelector("button")?.focus();
+  }, [results]);
 
   const send = async (changes: Record<string, unknown>, done: string) => {
     setBusy(true);
@@ -80,7 +87,11 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
       if (!res.ok) throw new Error();
       const found = (await res.json()) as PlaceResult[];
       setResults(found);
-      setMessage(found.length ? null : "No places found. Try another name, or add the city.");
+      setMessage(
+        found.length
+          ? `${found.length} ${found.length === 1 ? "place" : "places"} found.`
+          : "No places found. Try another name, or add the city.",
+      );
     } catch {
       setMessage("Search didn't work. Try again in a moment.");
     }
@@ -127,7 +138,7 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
         </button>
       </form>
       {results && results.length > 0 && (
-        <ul className="meta-results">
+        <ul className="meta-results" ref={resultsRef} aria-label="Places found">
           {results.map((r) => (
             <li key={`${r.lat},${r.lng}`}>
               <button type="button" onClick={() => pick(r)} disabled={busy}>
@@ -184,7 +195,10 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
           </button>
         )}
       </div>
-      {message && <p className="meta-message">{message}</p>}
+      {/* Always in the page, so screen readers announce each new message. */}
+      <p className="meta-message" role="status">
+        {message}
+      </p>
     </section>
   );
 }

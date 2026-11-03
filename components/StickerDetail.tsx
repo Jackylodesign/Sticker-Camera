@@ -118,7 +118,11 @@ export default function StickerDetail({ id, initialPublic }: { id: string; initi
         </p>
       </div>
 
-      {error && <p className="select-error">{error}</p>}
+      {error && (
+        <p className="select-error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="controls detail-controls">
         <button className="button primary" onClick={download} disabled={!url || busy}>

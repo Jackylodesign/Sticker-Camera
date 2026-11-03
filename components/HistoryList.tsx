@@ -79,7 +79,10 @@ function Row({ item }: { item: OutboxItem }) {
       {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
       {thumbUrl && <img src={thumbUrl} alt="" />}
       <div className="info">
-        <span className={`status-${item.status}`}>{LABEL[item.status]}</span>
+        {/* role="status": screen readers hear "Uploaded" etc. when it changes. */}
+        <span className={`status-${item.status}`} role="status">
+          {LABEL[item.status]}
+        </span>
         <small>{new Date(item.createdAt).toLocaleString()}</small>
         {item.status === "failed" && item.error && <small>{item.error}</small>}
       </div>

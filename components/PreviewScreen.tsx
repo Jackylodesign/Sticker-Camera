@@ -77,7 +77,11 @@ export default function PreviewScreen({
         </button>
       </div>
 
-      {error && <p className="select-error">{error}</p>}
+      {error && (
+        <p className="select-error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="controls">
         <button className="button secondary" onClick={onRetake} disabled={saving}>

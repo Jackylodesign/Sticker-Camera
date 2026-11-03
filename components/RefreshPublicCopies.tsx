@@ -39,7 +39,9 @@ export default function RefreshPublicCopies({ ids }: { ids: string[] }) {
       <button className="link-button" onClick={run} disabled={busy}>
         Refresh public copies
       </button>
-      {status && <span className="refresh-status">{status}</span>}
+      <span className="refresh-status" role="status">
+        {status}
+      </span>
     </>
   );
 }

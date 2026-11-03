@@ -98,7 +98,7 @@ export const ABOUT = {
     "Each object you see here is something I interacted with at a certain time and place. They went from nothing to something for me.",
     "Thank you for visiting.",
   ],
-  linkColor: "#5aa9ff", // links in the About panel
+  linkColor: "#8ac2ff", // links in the About panel
   enter: "Explore the stickers", // button that closes the intro
   credit: "All stickers © Jacky Lo. All rights reserved.",
   // One line for link previews (search results, iMessage, WhatsApp…).

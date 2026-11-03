@@ -17,7 +17,7 @@ export default function ModelStatusBar({ status }: { status: ModelStatus }) {
           : "Preparing sticker AI models…"}
       </span>
       <small>First time only. After this it works from cache.</small>
-      <div className="progress">
+      <div className="progress" role="progressbar" aria-label="Model download" aria-valuenow={pct}>
         <div style={{ width: `${pct}%` }} />
       </div>
     </div>

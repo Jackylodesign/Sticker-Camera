@@ -91,7 +91,7 @@ export default function LiftScreen({
         {/* A plain <img> so iOS offers "Copy Subject" on a long press. Don't add
             touch-callout/user-select/pointer-events blocking here or on parents. */}
         {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
-        {url && <img src={url} alt="Your photo" />}
+        {url && <img src={url} alt="Your capture" />}
       </div>
       <ol className="lift-steps">
         <li>Touch and hold the thing you want until it glows</li>
@@ -102,7 +102,11 @@ export default function LiftScreen({
           Tap <b>Paste sticker</b> below, then <b>Paste</b>
         </li>
       </ol>
-      {error && <p className="select-error">{error}</p>}
+      {error && (
+        <p className="select-error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="controls two">
         <button className="button secondary" onClick={onRetake}>
           Retake

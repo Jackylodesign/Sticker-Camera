@@ -8,24 +8,41 @@
 // - One requestAnimationFrame loop moves everything with translate3d. It only
 //   runs while something is moving.
 // - On desktop the grid drifts slightly with the mouse, hinting it can be dragged.
+// - Keyboard: arrow keys move one cell (Shift: three), Enter opens the middle one.
+// - Screen readers get a plain list of the same stickers instead (the grid
+//   repeats forever, so its images have alt="" and the list names each once).
+// - "Reduce motion" turns off the glide, the drift and the eased key moves.
 // - The grid stays hidden until the stickers on screen have loaded, then fades
 //   in all at once (no empty frames while loading).
 // Sizes, colours and friction: CANVAS in lib/constants.ts.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import LogoMark from "@/components/LogoMark";
+import { useDialog } from "@/components/useDialog";
 import { ABOUT, CANVAS } from "@/lib/constants";
 import type { PublicSticker } from "@/lib/db";
-import { formatDay } from "@/lib/meta";
+import { formatDay, stickerName } from "@/lib/meta";
 
 type Cell = { el: HTMLDivElement; img: HTMLImageElement; index: number };
 
 const FRAME = 1000 / 60; // ms
 const TAP_SLOP = 6; // px a pointer may move and still count as a tap
 const REVEAL_TIMEOUT = 5000; // ms: show the grid anyway if images are this slow
+const KEY_EASE = 0.2; // share of the remaining key move done each frame
+const ARROWS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
+
+const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[] }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const listTitleRef = useRef<HTMLHeadingElement>(null);
+  // Set by the grid below; the sticker list uses it to open a sticker.
+  const openRef = useRef<(index: number) => void>(() => {});
   const ids = useMemo(() => stickers.map((s) => s.id), [stickers]);
   const [opened, setOpened] = useState<{ url: string; index: number } | null>(null);
   // About opens on arrival, so visitors read the intro first. They close it
@@ -66,6 +83,8 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       }
       return url;
     };
+    const open = (i: number) => urlFor(i).then((u) => u && setOpened({ url: u, index: i }));
+    openRef.current = open;
 
     // ---------- cells ----------
     let pool: Cell[] = [];
@@ -77,6 +96,8 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     let dy = 0;
     let driftX = 0; // where the drift is heading
     let driftY = 0;
+    let kx = 0; // keyboard move still to go, px
+    let ky = 0;
 
     const buildPool = () => {
       for (const cell of pool) cell.el.remove();
@@ -135,6 +156,17 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
         vy *= k;
         if (Math.hypot(vx, vy) < 0.01) vx = vy = 0;
       }
+      // Ease towards where the arrow keys asked to go.
+      if (kx || ky) {
+        const k = 1 - Math.pow(1 - KEY_EASE, dt / FRAME);
+        const done = Math.hypot(kx, ky) < 0.5;
+        const mx = done ? kx : kx * k;
+        const my = done ? ky : ky * k;
+        ox += mx;
+        oy += my;
+        kx -= mx;
+        ky -= my;
+      }
       // Ease the drift towards where the mouse points.
       const ease = 1 - Math.pow(1 - CANVAS.driftEase, dt / FRAME);
       dx += (driftX - dx) * ease;
@@ -145,7 +177,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
         dy = driftY;
       }
       render();
-      if (dragging || vx || vy || drifting) {
+      if (dragging || vx || vy || kx || ky || drifting) {
         raf = requestAnimationFrame(tick);
       } else {
         raf = 0;
@@ -173,7 +205,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       dragging = true;
       moved = false;
       stoppedFling = Math.hypot(vx, vy) > 0.05; // still gliding: this tap just stops it
-      vx = vy = 0;
+      vx = vy = kx = ky = 0;
       startX = lastX = e.clientX;
       startY = lastY = e.clientY;
       samples = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }];
@@ -182,7 +214,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     // Mouse hovering (not dragging): drift away from the pointer, as if
     // leaning towards what's on that side.
     const onHover = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse" || dragging || !CANVAS.drift) return;
+      if (e.pointerType !== "mouse" || dragging || !CANVAS.drift || reducedMotion()) return;
       const nx = (e.clientX / root.clientWidth) * 2 - 1; // -1 left … 1 right
       const ny = (e.clientY / root.clientHeight) * 2 - 1;
       driftX = -nx * CANVAS.drift;
@@ -218,7 +250,8 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       const recent = samples.filter((s) => e.timeStamp - s.t < 100);
       const first = recent[0];
       const last = recent[recent.length - 1];
-      if (e.type === "pointerup" && first && last && last.t > first.t && e.timeStamp - last.t < 50) {
+      const fling = e.type === "pointerup" && !reducedMotion();
+      if (fling && first && last && last.t > first.t && e.timeStamp - last.t < 50) {
         vx = (last.x - first.x) / (last.t - first.t);
         vy = (last.y - first.y) / (last.t - first.t);
       }
@@ -233,7 +266,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? root.clientHeight : 1;
       ox -= e.deltaX * unit;
       oy -= e.deltaY * unit;
-      vx = vy = 0;
+      vx = vy = kx = ky = 0;
       wake();
     };
 
@@ -246,8 +279,39 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       const r = Math.floor(py / pitch);
       // Ignore taps in the gap between cells.
       if (px - c * pitch > CANVAS.cellSize || py - r * pitch > CANVAS.cellSize) return;
-      const i = indexAt(c, r);
-      urlFor(i).then((u) => u && setOpened({ url: u, index: i }));
+      open(indexAt(c, r));
+    };
+
+    // ---------- keyboard ----------
+    // Where ox/oy rest with sticker 0 in the middle; key moves land on this grid.
+    const homeX = () => (root.clientWidth - pitch) / 2;
+    const homeY = () => (root.clientHeight - pitch) / 2;
+    const snap = (v: number, home: number) => home + Math.round((v - home) / pitch) * pitch;
+    const onKey = (e: KeyboardEvent) => {
+      const dir = ARROWS[e.key];
+      if (dir) {
+        e.preventDefault();
+        const step = pitch * (e.shiftKey ? 3 : 1);
+        const tx = snap(ox + kx - dir[0] * step, homeX());
+        const ty = snap(oy + ky - dir[1] * step, homeY());
+        vx = vy = 0;
+        if (reducedMotion()) {
+          ox = tx;
+          oy = ty;
+          kx = ky = 0;
+          render();
+        } else {
+          kx = tx - ox;
+          ky = ty - oy;
+          wake();
+        }
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        // The cell nearest the middle of the screen (where a key move ends).
+        const px = root.clientWidth / 2 - (ox + kx + dx) - pitch / 2;
+        const py = root.clientHeight / 2 - (oy + ky + dy) - pitch / 2;
+        open(indexAt(Math.round(px / pitch), Math.round(py / pitch)));
+      }
     };
 
     const onResize = () => {
@@ -257,8 +321,8 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     const noMenu = (e: Event) => e.preventDefault();
 
     // Start with sticker 0 in the middle of the screen.
-    ox = (root.clientWidth - pitch) / 2;
-    oy = (root.clientHeight - pitch) / 2;
+    ox = homeX();
+    oy = homeY();
     buildPool();
     render();
 
@@ -284,6 +348,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     root.addEventListener("pointerleave", onLeave);
     root.addEventListener("wheel", onWheel, { passive: false });
     root.addEventListener("click", onClick);
+    root.addEventListener("keydown", onKey);
     root.addEventListener("contextmenu", noMenu);
     window.addEventListener("resize", onResize);
     return () => {
@@ -297,24 +362,13 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       root.removeEventListener("pointerleave", onLeave);
       root.removeEventListener("wheel", onWheel);
       root.removeEventListener("click", onClick);
+      root.removeEventListener("keydown", onKey);
       root.removeEventListener("contextmenu", noMenu);
       window.removeEventListener("resize", onResize);
       for (const cell of pool) cell.el.remove();
       for (const u of created) URL.revokeObjectURL(u);
     };
   }, [ids]);
-
-  // Esc closes the single-sticker view and the About panel.
-  useEffect(() => {
-    if (!opened && !aboutOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpened(null);
-      setAboutOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [opened, aboutOpen]);
 
   const vars = {
     background: CANVAS.background,
@@ -324,12 +378,23 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     "--hover-scale": CANVAS.hoverScale,
   } as React.CSSProperties;
 
+  const hasStickers = ids.length > 0;
+
   return (
     <>
-      <div ref={rootRef} className={ids.length === 0 ? "canvas is-ready" : "canvas"} style={vars}>
-        {ids.length === 0 && <p className="empty">Nothing here yet.</p>}
-      </div>
       <header className="canvas-bar" style={{ color: CANVAS.text }}>
+        {hasStickers && (
+          <a
+            href="#sticker-list"
+            className="skip-link"
+            onClick={(e) => {
+              e.preventDefault();
+              listTitleRef.current?.focus();
+            }}
+          >
+            Skip to sticker list
+          </a>
+        )}
         <span className="canvas-bar-title">
           <LogoMark />
           Sticker Index
@@ -337,40 +402,101 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
         <button
           type="button"
           className={aboutOpen ? "is-active" : undefined}
+          aria-haspopup="dialog"
           aria-expanded={aboutOpen}
           onClick={() => setAboutOpen((o) => !o)}
         >
           About
         </button>
       </header>
-      {aboutOpen && (
-        // Clicking the blurred background closes it; clicks inside the panel don't.
-        <div className="about-backdrop" onClick={() => setAboutOpen(false)}>
-          <div className="about-panel" role="dialog" aria-label="About" onClick={(e) => e.stopPropagation()}>
-            {ABOUT.paragraphs.map((text) => (
-              <p key={text}>{withLinks(text)}</p>
-            ))}
-            <button type="button" className="about-enter" onClick={() => setAboutOpen(false)} autoFocus>
-              {ABOUT.enter}
-            </button>
-            <p className="about-credit">{ABOUT.credit}</p>
-          </div>
+      {hasStickers ? (
+        <div
+          ref={rootRef}
+          className="canvas"
+          style={vars}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a custom widget: it takes arrow keys and Enter (see onKey)
+          tabIndex={0}
+          role="application"
+          aria-label="Sticker canvas. Use arrow keys to move, Enter to open the sticker in the middle"
+        />
+      ) : (
+        <div className="canvas is-ready" style={vars}>
+          <p className="empty">Nothing here yet.</p>
         </div>
       )}
+      {hasStickers && (
+        // The same stickers as a plain list, for screen readers and keyboard
+        // users. Hidden until something in it has focus (see globals.css).
+        <section className="sticker-list" aria-labelledby="sticker-list">
+          <h2 id="sticker-list" ref={listTitleRef} tabIndex={-1}>
+            Stickers
+          </h2>
+          <ul>
+            {stickers.map((s, i) => (
+              <li key={s.id}>
+                <button type="button" onClick={() => openRef.current(i)}>
+                  {stickerName(s)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} fallback={rootRef} />}
       {opened && (
-        <div className="canvas-overlay" style={vars} onClick={() => setOpened(null)}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
-          <img
-            src={opened.url}
-            alt="Sticker"
-            draggable={false}
-            onClick={(e) => e.stopPropagation()}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-          <p className="canvas-caption">{caption(stickers[opened.index])}</p>
-        </div>
+        <StickerDialog
+          url={opened.url}
+          sticker={stickers[opened.index]}
+          style={vars}
+          onClose={() => setOpened(null)}
+          fallback={rootRef}
+        />
       )}
     </>
+  );
+}
+
+type DialogProps = { onClose: () => void; fallback: React.RefObject<HTMLElement | null> };
+
+// Clicking the blurred background closes it; clicks inside the panel don't.
+function AboutDialog({ onClose, fallback }: DialogProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDialog(ref, onClose, fallback);
+  return (
+    <div ref={ref} className="about-backdrop">
+      <div className="about-panel" role="dialog" aria-modal="true" aria-label="About" data-keep-open>
+        {ABOUT.paragraphs.map((text) => (
+          <p key={text}>{withLinks(text)}</p>
+        ))}
+        <button type="button" className="about-enter" onClick={onClose} data-autofocus>
+          {ABOUT.enter}
+        </button>
+        <p className="about-credit">{ABOUT.credit}</p>
+      </div>
+    </div>
+  );
+}
+
+// One sticker, big. A click anywhere but the sticker closes it.
+function StickerDialog({
+  url,
+  sticker,
+  style,
+  onClose,
+  fallback,
+}: DialogProps & { url: string; sticker: PublicSticker | undefined; style: React.CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDialog(ref, onClose, fallback);
+  const name = sticker ? stickerName(sticker) : "Sticker";
+  return (
+    <div ref={ref} className="canvas-overlay" style={style} role="dialog" aria-modal="true" aria-label={name}>
+      <button type="button" className="canvas-close" onClick={onClose}>
+        Close
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
+      <img src={url} alt={name} draggable={false} data-keep-open onContextMenu={(e) => e.preventDefault()} />
+      <p className="canvas-caption">{caption(sticker)}</p>
+    </div>
   );
 }
 
