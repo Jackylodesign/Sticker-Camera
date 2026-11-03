@@ -11,6 +11,7 @@ import {
   uploadPending,
   type OutboxItem,
 } from "@/lib/outbox";
+import styles from "./HistoryList.module.css";
 
 const LABEL = { waiting: "Waiting", uploading: "Uploading…", uploaded: "Uploaded", failed: "Failed" } as const;
 
@@ -37,7 +38,7 @@ export default function HistoryList() {
   if (!items) return null;
   if (items.length === 0) return <p className="empty">No stickers yet. Take a photo and tap Save.</p>;
   return (
-    <ul>
+    <ul className={styles.list}>
       {items.map((item) => (
         <Row key={item.id} item={item} />
       ))}
@@ -78,9 +79,9 @@ function Row({ item }: { item: OutboxItem }) {
     <li>
       {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
       {thumbUrl && <img src={thumbUrl} alt="" />}
-      <div className="info">
+      <div className={styles.info}>
         {/* role="status": screen readers hear "Uploaded" etc. when it changes. */}
-        <span className={`status-${item.status}`} role="status">
+        <span className={styles[item.status]} role="status">
           {LABEL[item.status]}
         </span>
         <small>{new Date(item.createdAt).toLocaleString()}</small>

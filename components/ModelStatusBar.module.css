@@ -1,0 +1,32 @@
+/* The one-time AI model download bar. */
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px var(--gutter) 0;
+  font-size: 14px;
+  width: 100%;
+}
+
+.status small {
+  color: var(--color-faint);
+}
+
+.status.error {
+  color: var(--color-error);
+}
+
+.progress {
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: #333;
+  overflow: hidden;
+}
+
+.progress div {
+  height: 100%;
+  background: var(--color-text);
+  transition: width 0.2s;
+}

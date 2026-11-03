@@ -4,6 +4,7 @@ import { auth, isOwner } from "@/auth";
 import { sql } from "@/lib/db";
 import StickerDetail from "@/components/StickerDetail";
 import StickerMeta, { type Meta } from "@/components/StickerMeta";
+import styles from "./page.module.css";
 
 export const metadata = { title: "Sticker · Sticker Camera" };
 
@@ -26,7 +27,7 @@ export default async function StickerPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <main className="screen preview detail">
+    <main className={`screen ${styles.detail}`}>
       <header className="page-header">
         <Link href="/library">‹ Library</Link>
       </header>

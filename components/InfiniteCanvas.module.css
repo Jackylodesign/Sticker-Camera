@@ -1,0 +1,374 @@
+/* The public home page: canvas, top bar, About and the single-sticker view.
+   Sizes and colours of the grid itself: CANVAS in lib/config/canvas.ts. */
+
+/* Skip link and sticker list: for screen readers until they have keyboard focus. */
+.skipLink:not(:focus),
+.stickerList:not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.canvas {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* We handle every touch ourselves: no page scroll, bounce or zoom. */
+  touch-action: none;
+  overscroll-behavior: none;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Focus ring drawn above the stickers, with a dark edge so it shows on white ones too. */
+.canvas:focus-visible {
+  outline: none;
+}
+
+.canvas:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: 1;
+  border: 2px solid var(--color-text);
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.canvas.isDragging {
+  cursor: grabbing;
+}
+
+/* Hidden until the stickers on screen have loaded, then all fade in together. */
+.canvas > * {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+
+.canvas.isReady > * {
+  opacity: 1;
+}
+
+.canvas .empty {
+  color: #7c7c7c;
+}
+
+/* One grid cell. Made by the canvas code, not React. */
+.cell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cell);
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+/* An <img> with no picture yet would show an empty frame. */
+.cell img:not([src]) {
+  visibility: hidden;
+}
+
+.cell img {
+  width: var(--fit);
+  height: var(--fit);
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.2s ease-out;
+}
+
+@media (hover: hover) {
+  .canvas:not(.isDragging) .cell:hover img {
+    transform: scale(var(--hover-scale));
+  }
+}
+
+/* Top bar over the canvas. It lets drags through, except on its links. */
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Phone: 16px edges (plus the notch area); desktop: 24px. */
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 16px
+    max(16px, env(safe-area-inset-left));
+  font-size: 16px;
+  line-height: 20px;
+  pointer-events: none;
+  z-index: 1;
+  /* Keeps the white text readable when a light sticker passes under it. */
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+@media (min-width: 768px) {
+  .bar {
+    padding: 24px;
+  }
+}
+
+/* Wordmark: a step bigger and heavier than the links. */
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.bar a,
+.bar button {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  /* 44px-tall tap area (Apple's minimum) without moving the text. */
+  padding: 12px 8px;
+  margin: -12px -8px;
+  text-underline-offset: 4px;
+}
+
+.bar a:hover,
+.bar button:hover,
+.bar .isActive {
+  text-decoration: underline;
+}
+
+/* ---------- About panel (glassy, over a blurred canvas) ---------- */
+.aboutBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0; /* under the bar, so About can close it again */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 16px 24px;
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  touch-action: none;
+  animation: aboutFade 0.25s ease-out;
+}
+
+.aboutPanel {
+  width: min(420px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 24px;
+  background: rgba(40, 40, 40, 0.72);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+  font-size: 16px;
+  line-height: 1.45;
+  touch-action: pan-y;
+  animation: aboutRise 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Links: coloured (ABOUT.linkColor) with a faint underline, so they don't rely on
+   colour alone. Full underline on hover. */
+.aboutPanel a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.aboutPanel a:hover,
+.aboutPanel a:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.aboutPanel p + p {
+  margin-top: 0.9em;
+}
+
+.aboutEnter {
+  display: block;
+  width: 100%;
+  margin-top: 1.6em;
+  height: 44px;
+  border: none;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-bg);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.aboutEnter:hover {
+  background: #fff;
+}
+
+.aboutPanel .aboutCredit {
+  margin-top: 1.4em;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+@keyframes aboutFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes aboutRise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+/* ---------- One sticker, big ---------- */
+.overlay {
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.6);
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  touch-action: none;
+}
+
+.overlay img {
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Close button on the single-sticker view: same spot and style as About. */
+.close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  padding: 12px 8px;
+  margin: -12px -8px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  line-height: 20px;
+  cursor: pointer;
+  text-underline-offset: 4px;
+}
+
+.close:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 768px) {
+  .close {
+    top: 24px;
+    right: 24px;
+  }
+}
+
+/* Skip link: hidden until it has keyboard focus, then shown over the logo. */
+.bar .skipLink {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--color-canvas);
+}
+
+/* Sticker list: hidden until it has focus, then a small panel. */
+.stickerList {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1;
+  width: min(340px, calc(100% - 32px));
+  max-height: 50dvh;
+  overflow-y: auto;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(40, 40, 40, 0.95);
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.stickerList h2 {
+  padding: 4px 8px 8px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.stickerList ul {
+  list-style: none;
+  padding: 0;
+}
+
+.stickerList button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stickerList button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Date and area under the opened sticker. */
+.caption {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+/* "Reduce motion": no zooms, slides or eased moves (the canvas JS does the rest). */
+@media (prefers-reduced-motion: reduce) {
+  .cell img,
+  .aboutEnter {
+    transition: none;
+  }
+
+  .aboutBackdrop,
+  .aboutPanel {
+    animation: none;
+  }
+}

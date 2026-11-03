@@ -1,0 +1,62 @@
+/* Library → Figma plugin: make and revoke plugin tokens. */
+
+.tokens {
+  margin: 0 var(--gutter) 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: #1c1c1c;
+  font-size: 14px;
+}
+
+.tokens summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.tokens[open] summary {
+  margin-bottom: 10px;
+}
+
+.tokens > :global(.button) {
+  margin-top: 10px;
+}
+
+.note {
+  color: var(--color-muted);
+}
+
+.new {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.new input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--color-field-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: 13px var(--font-mono);
+}
+
+.new .note {
+  flex-basis: 100%;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin-top: 8px;
+}
+
+.list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--color-surface);
+}

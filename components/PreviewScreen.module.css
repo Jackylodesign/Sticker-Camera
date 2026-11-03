@@ -1,0 +1,84 @@
+/* The sticker on a checkerboard, with its style switches.
+   Also used by the Library detail page (StickerDetail). */
+
+.checkerboard {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* one cell exactly the size of this area, so the image's max-height: 100% has a fixed height to fit in */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  padding: var(--gutter);
+  /* the classic "this is transparent" grey checkerboard */
+  background-color: #fff;
+  background-image: conic-gradient(var(--color-checker) 25%, #fff 0 50%, var(--color-checker) 0 75%, #fff 0);
+  background-size: 20px 20px;
+}
+
+/* Library detail: the page scrolls, so the sticker gets a fixed height. */
+.checkerboard.short {
+  flex: none;
+  height: 55dvh;
+}
+
+.checkerboard img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  padding: 8px var(--gutter) 0;
+}
+
+.toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 48px;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* iOS-style switch drawn from a plain checkbox */
+.toggle input {
+  appearance: none;
+  position: relative;
+  width: 51px;
+  height: 31px;
+  border-radius: 16px;
+  background: var(--color-field-border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+
+.toggle input:checked {
+  background: var(--color-success);
+}
+
+.toggle input:checked::after {
+  transform: translateX(20px);
+}
+
+/* "Download this preview": a small grey link. */
+:global(.link).download {
+  align-self: flex-start;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--color-muted);
+}

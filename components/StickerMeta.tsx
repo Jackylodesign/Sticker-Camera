@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PlaceResult } from "@/lib/geocode";
 import { currentPosition } from "@/lib/location";
 import { errorMessage } from "@/lib/outbox";
+import styles from "./StickerMeta.module.css";
 
 export type Meta = {
   taken_at: string | null; // ISO
@@ -117,12 +118,12 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
   const hasCoords = meta.lat != null && meta.lng != null;
 
   return (
-    <section className="sticker-meta">
+    <section className={styles.meta}>
       <label>
         <span>Date and time</span>
         <input type="datetime-local" value={taken} onChange={(e) => setTaken(e.target.value)} disabled={busy} />
       </label>
-      <form className="meta-search" onSubmit={findPlace}>
+      <form className={styles.search} onSubmit={findPlace}>
         <label>
           <span>Find a place</span>
           <input
@@ -138,7 +139,7 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
         </button>
       </form>
       {results && results.length > 0 && (
-        <ul className="meta-results" ref={resultsRef} aria-label="Places found">
+        <ul className={styles.results} ref={resultsRef} aria-label="Places found">
           {results.map((r) => (
             <li key={`${r.lat},${r.lng}`}>
               <button type="button" onClick={() => pick(r)} disabled={busy}>
@@ -168,7 +169,7 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
         />
       </label>
 
-      <p className="meta-coords">
+      <p className={styles.coords}>
         {hasCoords ? (
           <a
             href={`https://www.openstreetmap.org/?mlat=${meta.lat}&mlon=${meta.lng}#map=17/${meta.lat}/${meta.lng}`}
@@ -182,7 +183,7 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
         )}
       </p>
 
-      <div className="meta-actions">
+      <div className={styles.actions}>
         <button className="button primary" onClick={save} disabled={busy}>
           Save details
         </button>
@@ -196,7 +197,7 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
         )}
       </div>
       {/* Always in the page, so screen readers announce each new message. */}
-      <p className="meta-message" role="status">
+      <p className={styles.message} role="status">
         {message}
       </p>
     </section>

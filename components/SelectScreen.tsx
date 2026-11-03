@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { prepareSelection, selectObject, type ModelStatus, type SelectPoint } from "@/lib/models";
 import { releaseCanvas } from "@/lib/photo";
 import ModelStatusBar from "./ModelStatusBar";
+import styles from "./SelectScreen.module.css";
 
 type Mode = "select" | "add" | "remove";
 
@@ -112,16 +113,16 @@ export default function SelectScreen({
   else if (mode === "remove") hint = points.length ? "Tap areas to remove (like a hand)" : "Tap the object first";
 
   return (
-    <main className="screen select">
+    <main className="screen">
       <p className="hint" aria-live="polite">
         {hint}
       </p>
-      <div className="select-area">
+      <div className={styles.area}>
         {/* Touch or mouse only: there is no keyboard way to pick a spot yet. */}
         <canvas
           ref={canvasRef}
           onPointerDown={onTap}
-          className={ready ? undefined : "waiting"}
+          className={ready ? undefined : styles.waiting}
           role="img"
           aria-label="Your photo. Tap the object to select it."
         />
@@ -142,7 +143,7 @@ export default function SelectScreen({
         </p>
       )}
 
-      <div className="modes" role="radiogroup" aria-label="Tap mode">
+      <div className={styles.modes} role="radiogroup" aria-label="Tap mode">
         {(
           [
             ["select", "Select"],
@@ -154,7 +155,7 @@ export default function SelectScreen({
             key={m}
             role="radio"
             aria-checked={mode === m}
-            className={mode === m ? "on" : undefined}
+            className={mode === m ? styles.on : undefined}
             onClick={() => setMode(m)}
           >
             {label}

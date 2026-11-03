@@ -1,0 +1,7 @@
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 var(--gutter) 12px;
+  font-size: 14px;
+}

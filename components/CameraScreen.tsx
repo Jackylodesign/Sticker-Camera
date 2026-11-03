@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { currentPosition, locationNotAskedYet, readPhotoMeta, type CaptureMeta } from "@/lib/location";
 import { captureVideoFrame, loadImageFile } from "@/lib/photo";
 import type { ModelStatus } from "@/lib/models";
+import styles from "./CameraScreen.module.css";
 import ModelStatusBar from "./ModelStatusBar";
 
 type Facing = "environment" | "user"; // rear / front camera
@@ -89,12 +90,12 @@ export default function CameraScreen({
   };
 
   return (
-    <main className="screen camera">
-      <nav className="top-links">
+    <main className={`screen ${styles.camera}`}>
+      <nav className={styles.topLinks}>
         <Link href="/library">Library</Link>
         <Link href="/history">History</Link>
       </nav>
-      <div className="viewfinder">
+      <div className={styles.viewfinder}>
         {/* playsInline + muted are required for live video on iPhone. */}
         <video
           ref={videoRef}
@@ -102,14 +103,14 @@ export default function CameraScreen({
           muted
           autoPlay
           onLoadedMetadata={() => setReady(true)}
-          className={facing === "user" ? "mirrored" : undefined}
+          className={facing === "user" ? styles.mirrored : undefined}
         />
-        {cameraError && <p className="camera-error">{cameraError}</p>}
+        {cameraError && <p className={styles.cameraError}>{cameraError}</p>}
       </div>
 
       {notice && <p className="notice">{notice}</p>}
       {locationHint && !notice && (
-        <p className="location-hint">
+        <p className={styles.locationHint}>
           Your first photo asks for your location, so each sticker remembers where it was found. Only you see the exact
           spot.
         </p>
@@ -122,7 +123,7 @@ export default function CameraScreen({
           {/* Visually hidden, not `hidden`, so the keyboard can still reach it. */}
           <input type="file" accept="image/*" onChange={pickFile} className="visually-hidden" />
         </label>
-        <button className="shutter" onClick={shoot} disabled={!ready} aria-label="Take photo" />
+        <button className={styles.shutter} onClick={shoot} disabled={!ready} aria-label="Take photo" />
         <button
           className="button secondary"
           onClick={() => {
