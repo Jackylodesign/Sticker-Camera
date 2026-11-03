@@ -22,10 +22,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Used by proxy.ts: who may open pages and /api routes.
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
-      if (pathname === "/signin" || pathname.startsWith("/api/auth")) return true;
+      if (pathname === "/signin" || pathname === "/api/auth" || pathname.startsWith("/api/auth/")) return true;
       // The home page (canvas), gallery and their small images are open to everyone.
       // Share preview picture and icons too, so link previews can load them.
-      if (/^\/(opengraph-image|icon|apple-icon)/.test(pathname)) return true;
+      // Exact paths: Next adds its cache hash as "?…", which isn't part of the path.
+      if (pathname === "/opengraph-image" || pathname === "/icon.svg" || pathname === "/apple-icon") return true;
       if (
         pathname === "/" ||
         pathname === "/gallery" ||

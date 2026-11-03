@@ -27,9 +27,14 @@ const PUBLIC = [
   "/api/auth/signin",
   "/api/auth/callback/google",
   "/api/gallery/0b7c2f2e-1111-4222-8333-444455556666/image",
+  "/api/auth",
+  // The URLs Next puts in the page <head> (cache hash in the query).
   "/opengraph-image",
+  "/opengraph-image?7abf6e5165626474",
   "/icon.svg",
+  "/icon.svg?icon.177lya8ogzf76.svg",
   "/apple-icon",
+  "/apple-icon?d7d3d7f3ecfa455d",
 ];
 
 const OWNER_PAGES = ["/camera", "/library", "/library/x", "/history"];
@@ -156,18 +161,18 @@ describe("tricky paths", () => {
     expect(check(path)).toBe(expected);
   });
 
-  // SURPRISING, but not a hole today: the icon / preview check is a prefix
-  // match, so any path starting with these names is public. No owner page or
-  // API starts with them now. Don't name a private route like this.
-  it.each(["/icon-evil", "/iconography", "/apple-icon-x", "/opengraph-image-anything"])(
-    "allows %s (prefix match)",
-    (path) => {
-      expect(check(path)).toBe("allow");
-    },
-  );
-
-  // Same for /api/auth: a prefix, so /api/authx is public too. No route exists there.
-  it("allows /api/authx (prefix match)", () => {
-    expect(check("/api/authx")).toBe("allow");
+  // Icons, share preview and /api/auth are exact matches, not prefixes.
+  it.each([
+    ["/icon-evil", "signin"],
+    ["/iconography", "signin"],
+    ["/icon", "signin"],
+    ["/icon.svg/x", "signin"],
+    ["/apple-icon-x", "signin"],
+    ["/opengraph-image-anything", "signin"],
+    ["/opengraph-image/x", "signin"],
+    ["/api/authx", "401"],
+    ["/api/auth-evil/x", "401"],
+  ])("%s -> %s (no prefix match)", (path, expected) => {
+    expect(check(path)).toBe(expected);
   });
 });
