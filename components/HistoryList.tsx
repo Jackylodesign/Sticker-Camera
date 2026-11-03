@@ -51,6 +51,7 @@ function Row({ item }: { item: OutboxItem }) {
 
   useEffect(() => {
     const url = URL.createObjectURL(item.thumb);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL must be made and revoked together here
     setThumbUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [item.thumb]);
@@ -72,6 +73,7 @@ function Row({ item }: { item: OutboxItem }) {
 
   return (
     <li>
+      {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
       {thumbUrl && <img src={thumbUrl} alt="" />}
       <div className="info">
         <span className={`status-${item.status}`}>{LABEL[item.status]}</span>

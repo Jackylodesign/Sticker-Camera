@@ -29,6 +29,7 @@ export default async function Image() {
             <img
               key={`${x},${y}`}
               src={stickers[index]}
+              alt=""
               width={CELL}
               height={CELL}
               style={{ position: "absolute", left: x, top: y, objectFit: "contain", padding: (CELL * (1 - CANVAS.stickerSize)) / 2 }}

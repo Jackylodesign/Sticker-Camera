@@ -34,11 +34,10 @@ export default function CameraScreen({
   useEffect(() => {
     let stream: MediaStream | null = null;
     let cancelled = false;
-    setReady(false);
-    setCameraError(null);
 
     // The camera is only available on secure pages (https:// or localhost).
     if (!navigator.mediaDevices?.getUserMedia) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigator only exists in the browser, not on the server
       setCameraError("Camera isn't available here. Open the app over https:// (or use “Choose from library”).");
       return;
     }
@@ -122,7 +121,11 @@ export default function CameraScreen({
         <button className="shutter" onClick={shoot} disabled={!ready} aria-label="Take photo" />
         <button
           className="button secondary"
-          onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+          onClick={() => {
+            setReady(false);
+            setCameraError(null);
+            setFacing((f) => (f === "environment" ? "user" : "environment"));
+          }}
           disabled={!!cameraError}
         >
           Switch camera

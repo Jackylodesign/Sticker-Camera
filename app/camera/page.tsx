@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import CameraScreen from "@/components/CameraScreen";
 import LiftScreen from "@/components/LiftScreen";
 import ModelStatusBar from "@/components/ModelStatusBar";
@@ -32,7 +32,7 @@ export default function Home() {
   const [modelStatus, setModelStatus] = useState<ModelStatus>({ state: "loading", loaded: 0, total: 0 });
   const [notice, setNotice] = useState<string | null>(null);
   // When and where the current photo was taken, used at Save.
-  const meta = useRef<CaptureMeta | undefined>(undefined);
+  const [meta, setMeta] = useState<CaptureMeta | undefined>(undefined);
 
   // Upload any stickers still waiting from last time, and again when back online.
   useEffect(() => startAutoUpload(), []);
@@ -41,6 +41,7 @@ export default function Home() {
   // iPhone/iPad: never load them (Apple's "Copy Subject" does the cut-out).
   useEffect(() => {
     if (IS_IOS) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- IS_IOS is only known in the browser, not on the server
       setModelStatus({ state: "ready" }); // nothing to download
       return;
     }
@@ -72,7 +73,7 @@ export default function Home() {
     return (
       <CameraScreen
         onPhoto={(photo, photoMeta) => {
-          meta.current = photoMeta;
+          setMeta(photoMeta);
           setNotice(null);
           setScreen(IS_IOS ? { name: "lift", photo } : { name: "select", photo });
         }}
@@ -106,7 +107,7 @@ export default function Home() {
     return (
       <PreviewScreen
         sticker={screen.sticker}
-        meta={meta.current}
+        meta={meta}
         onRetake={retake}
         onSaved={(result) => {
           retake();

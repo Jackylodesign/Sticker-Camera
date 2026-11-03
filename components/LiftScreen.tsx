@@ -86,6 +86,7 @@ export default function LiftScreen({
       <div className="lift-area">
         {/* A plain <img> so iOS offers "Copy Subject" on a long press. Don't add
             touch-callout/user-select/pointer-events blocking here or on parents. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
         {url && <img src={url} alt="Your photo" />}
       </div>
       <ol className="lift-steps">

@@ -99,14 +99,14 @@ async function release() {
   active = null;
 }
 
-async function useRmbg(): Promise<Rmbg> {
+async function getRmbg(): Promise<Rmbg> {
   if (active?.kind === "rmbg") return active;
   await release();
   active = { kind: "rmbg", ...(await loadRmbg(device!)) };
   return active;
 }
 
-async function useSam(): Promise<Sam> {
+async function getSam(): Promise<Sam> {
   if (active?.kind === "sam") return active;
   await release();
   active = { kind: "sam", ...(await loadSam(device!)) };
@@ -120,8 +120,8 @@ function preload() {
   if (!preloading) {
     const p = (async () => {
       device ??= await pickDevice();
-      await useRmbg(); // downloads + caches RMBG...
-      await useSam(); // ...then releases it and loads SAM
+      await getRmbg(); // downloads + caches RMBG...
+      await getSam(); // ...then releases it and loads SAM
       reportProgress = false;
       post({ type: "ready" });
     })();
@@ -148,7 +148,7 @@ async function handle(msg: WorkerRequest) {
   await preload();
 
   if (msg.type === "foreground") {
-    const rmbg = await useRmbg(); // also frees SAM and its embedding
+    const rmbg = await getRmbg(); // also frees SAM and its embedding
     // Photo pixels in, one-channel "how much is this pixel foreground" mask out.
     const image = new RawImage(msg.pixels, msg.width, msg.height, 4).rgb();
     const { pixel_values } = await rmbg.processor(image);
@@ -160,7 +160,7 @@ async function handle(msg: WorkerRequest) {
     [pixel_values, scaled, ...(Object.values(outputs) as Tensor[])].forEach((t) => t.dispose());
     post({ type: "foreground", id: msg.id, mask, size: MODEL.inputSize }, [mask.buffer as ArrayBuffer]);
   } else if (msg.type === "sam-embed") {
-    const sam = await useSam();
+    const sam = await getSam();
     releaseSamPhoto();
     const image = new RawImage(msg.pixels, msg.width, msg.height, 4).rgb();
     const inputs = await sam.processor(image);

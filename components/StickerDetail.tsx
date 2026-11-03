@@ -112,6 +112,7 @@ export default function StickerDetail({ id, initialPublic }: { id: string; initi
   return (
     <>
       <div className="checkerboard">
+        {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
         {url ? <img src={url} alt="Sticker" /> : !error && <div className="spinner" aria-hidden />}
       </div>
 

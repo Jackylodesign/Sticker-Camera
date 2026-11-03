@@ -356,6 +356,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       )}
       {opened && (
         <div className="canvas-overlay" style={vars} onClick={() => setOpened(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
           <img
             src={opened.url}
             alt="Sticker"

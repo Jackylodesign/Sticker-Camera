@@ -34,8 +34,6 @@ export default function SelectScreen({
   // Let SAM "read" the photo once. After that, each tap is quick.
   useEffect(() => {
     let cancelled = false;
-    setPhotoId(null);
-    setPrepareFailed(false);
     prepareSelection(photo)
       .then((id) => !cancelled && setPhotoId(id))
       .catch((e) => {
@@ -52,6 +50,7 @@ export default function SelectScreen({
   useEffect(() => {
     if (photoId === null || points.length === 0) return;
     const run = ++latest.current;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- shows the spinner while the worker answers
     setBusy(true);
     selectObject(photoId, points)
       .then((m) => {
@@ -124,7 +123,7 @@ export default function SelectScreen({
         <p className="select-error">
           {error}{" "}
           {prepareFailed && (
-            <button className="link" onClick={() => (setError(null), setAttempt((a) => a + 1))}>
+            <button className="link" onClick={() => (setError(null), setPrepareFailed(false), setAttempt((a) => a + 1))}>
               Try again
             </button>
           )}
