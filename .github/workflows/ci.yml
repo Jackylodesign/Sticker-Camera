@@ -33,9 +33,8 @@ jobs:
       - name: Format check
         run: npm run format:check
 
-      # Tests go here once they exist:
-      # - name: Test
-      #   run: npm test
+      - name: Test
+        run: npm test
 
       # No env vars needed: the app only reads them at runtime.
       - name: Build
