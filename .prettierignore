@@ -1,0 +1,7 @@
+.next
+node_modules
+out
+package-lock.json
+next-env.d.ts
+# Hand-written HTML with inline JS and CSS; keep it as is.
+figma-plugin/ui.html

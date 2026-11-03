@@ -6,13 +6,7 @@ import { Toggle } from "@/components/PreviewScreen";
 import { makeDisplayImage } from "@/lib/display";
 import { errorMessage } from "@/lib/outbox";
 import { releaseCanvas } from "@/lib/photo";
-import {
-  canvasToPngBlob,
-  prepareSticker,
-  renderSticker,
-  type PreparedSticker,
-  type StickerStyle,
-} from "@/lib/sticker";
+import { canvasToPngBlob, prepareSticker, renderSticker, type PreparedSticker, type StickerStyle } from "@/lib/sticker";
 
 export default function StickerDetail({ id, initialPublic }: { id: string; initialPublic: boolean }) {
   const router = useRouter();
@@ -112,6 +106,7 @@ export default function StickerDetail({ id, initialPublic }: { id: string; initi
   return (
     <>
       <div className="checkerboard">
+        {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
         {url ? <img src={url} alt="Sticker" /> : !error && <div className="spinner" aria-hidden />}
       </div>
 

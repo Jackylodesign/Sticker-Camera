@@ -140,16 +140,30 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
       )}
       <label>
         <span>Place (only you)</span>
-        <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="e.g. Sai Yeung Choi Street, Mong Kok" disabled={busy} />
+        <input
+          value={place}
+          onChange={(e) => setPlace(e.target.value)}
+          placeholder="e.g. Sai Yeung Choi Street, Mong Kok"
+          disabled={busy}
+        />
       </label>
       <label>
         <span>Area (shown publicly)</span>
-        <input value={area} onChange={(e) => setArea(e.target.value)} placeholder="e.g. Mong Kok, Hong Kong" disabled={busy} />
+        <input
+          value={area}
+          onChange={(e) => setArea(e.target.value)}
+          placeholder="e.g. Mong Kok, Hong Kong"
+          disabled={busy}
+        />
       </label>
 
       <p className="meta-coords">
         {hasCoords ? (
-          <a href={`https://www.openstreetmap.org/?mlat=${meta.lat}&mlon=${meta.lng}#map=17/${meta.lat}/${meta.lng}`} target="_blank" rel="noreferrer">
+          <a
+            href={`https://www.openstreetmap.org/?mlat=${meta.lat}&mlon=${meta.lng}#map=17/${meta.lat}/${meta.lng}`}
+            target="_blank"
+            rel="noreferrer"
+          >
             {meta.lat!.toFixed(5)}, {meta.lng!.toFixed(5)}
           </a>
         ) : (

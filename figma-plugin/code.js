@@ -89,7 +89,10 @@ function makeStickerRect(bytes, width, height) {
 // Bounding box (page coordinates) around everything selected, or null.
 function selectionBounds() {
   var nodes = figma.currentPage.selection;
-  var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  var minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (var i = 0; i < nodes.length; i++) {
     var b = nodes[i].absoluteBoundingBox;
     if (!b) continue;

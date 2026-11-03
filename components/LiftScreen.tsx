@@ -53,7 +53,9 @@ export default function LiftScreen({
     }
     setBusy(true);
     try {
-      const item = items.find((i) => i.types.includes("image/png")) ?? items.find((i) => i.types.some((t) => t.startsWith("image/")));
+      const item =
+        items.find((i) => i.types.includes("image/png")) ??
+        items.find((i) => i.types.some((t) => t.startsWith("image/")));
       if (!item) {
         setError("No image on the clipboard yet. Touch and hold the object, tap Copy Subject, then try again.");
         return;
@@ -69,7 +71,9 @@ export default function LiftScreen({
       // A real "Copy Subject" result has a transparent background. If there is
       // no transparency at all, something else was copied (e.g. the whole photo).
       if (!hasTransparency(canvas)) {
-        setError("That image has no transparent background. Make sure you tap “Copy Subject” (not “Copy”), then paste again.");
+        setError(
+          "That image has no transparent background. Make sure you tap “Copy Subject” (not “Copy”), then paste again.",
+        );
         return;
       }
       onSticker(canvas);
@@ -86,11 +90,14 @@ export default function LiftScreen({
       <div className="lift-area">
         {/* A plain <img> so iOS offers "Copy Subject" on a long press. Don't add
             touch-callout/user-select/pointer-events blocking here or on parents. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
         {url && <img src={url} alt="Your photo" />}
       </div>
       <ol className="lift-steps">
         <li>Touch and hold the thing you want until it glows</li>
-        <li>Tap <b>Copy Subject</b></li>
+        <li>
+          Tap <b>Copy Subject</b>
+        </li>
         <li>
           Tap <b>Paste sticker</b> below, then <b>Paste</b>
         </li>

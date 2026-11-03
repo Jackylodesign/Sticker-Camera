@@ -15,7 +15,10 @@ export default function RefreshPublicCopies({ ids }: { ids: string[] }) {
   const [busy, setBusy] = useState(false);
 
   const run = async () => {
-    if (!confirm(`Make the public copies of ${ids.length} stickers again? They'll all get the white border and shadow.`)) return;
+    if (
+      !confirm(`Make the public copies of ${ids.length} stickers again? They'll all get the white border and shadow.`)
+    )
+      return;
     setBusy(true);
     let failed = 0;
     for (const [n, id] of ids.entries()) {

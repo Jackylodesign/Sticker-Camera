@@ -56,7 +56,13 @@ async function search(query: string): Promise<PlaceResult[]> {
     cache: "no-store",
   });
   if (!res.ok) return [];
-  const data = (await res.json()) as { lat: string; lon: string; display_name?: string; name?: string; address?: Address }[];
+  const data = (await res.json()) as {
+    lat: string;
+    lon: string;
+    display_name?: string;
+    name?: string;
+    address?: Address;
+  }[];
   return data
     .map((d) => ({ lat: Number(d.lat), lng: Number(d.lon), label: d.display_name ?? d.name ?? "", ...namesFrom(d) }))
     .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng));

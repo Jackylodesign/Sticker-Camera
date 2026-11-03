@@ -20,28 +20,42 @@ const GAP = Math.round(CANVAS.gap * 0.8);
 export default async function Image() {
   const stickers = await publicStickerImages(12);
   return new ImageResponse(
-    (
-      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", overflow: "hidden", background: CANVAS.background }}>
-        {stickers.length > 0 ? (
-          // A slice of the infinite canvas: same grid, same repeat order, cut
-          // off at the edges so it reads as "this keeps going".
-          gridCells(stickers.length).map(({ x, y, index }) => (
-            <img
-              key={`${x},${y}`}
-              src={stickers[index]}
-              width={CELL}
-              height={CELL}
-              style={{ position: "absolute", left: x, top: y, objectFit: "contain", padding: (CELL * (1 - CANVAS.stickerSize)) / 2 }}
-            />
-          ))
-        ) : (
-          // No public stickers yet: the mark on its own.
-          <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
-            <Mark size={160} />
-          </div>
-        )}
-      </div>
-    ),
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        position: "relative",
+        overflow: "hidden",
+        background: CANVAS.background,
+      }}
+    >
+      {stickers.length > 0 ? (
+        // A slice of the infinite canvas: same grid, same repeat order, cut
+        // off at the edges so it reads as "this keeps going".
+        gridCells(stickers.length).map(({ x, y, index }) => (
+          <img
+            key={`${x},${y}`}
+            src={stickers[index]}
+            alt=""
+            width={CELL}
+            height={CELL}
+            style={{
+              position: "absolute",
+              left: x,
+              top: y,
+              objectFit: "contain",
+              padding: (CELL * (1 - CANVAS.stickerSize)) / 2,
+            }}
+          />
+        ))
+      ) : (
+        // No public stickers yet: the mark on its own.
+        <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
+          <Mark size={160} />
+        </div>
+      )}
+    </div>,
     size,
   );
 }
@@ -73,7 +87,16 @@ function mod(a: number, b: number) {
 // the image generator, which only understands plain SVG).
 function Mark({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#fff"
+      strokeWidth={2.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M14 3H6a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-8" />
       <path d="M14 3v4a3 3 0 0 0 3 3h4z" />
     </svg>

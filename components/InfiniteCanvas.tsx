@@ -32,7 +32,6 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
   // (Explore button, click outside or Esc) to see the stickers.
   const [aboutOpen, setAboutOpen] = useState(true);
 
-
   useEffect(() => {
     const root = rootRef.current;
     if (!root || ids.length === 0) return;
@@ -356,6 +355,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       )}
       {opened && (
         <div className="canvas-overlay" style={vars} onClick={() => setOpened(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
           <img
             src={opened.url}
             alt="Sticker"

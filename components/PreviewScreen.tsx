@@ -64,7 +64,10 @@ export default function PreviewScreen({
 
   return (
     <main className="screen preview">
-      <div className="checkerboard">{url && <img src={url} alt="Sticker preview" />}</div>
+      <div className="checkerboard">
+        {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
+        {url && <img src={url} alt="Sticker preview" />}
+      </div>
 
       <div className="toggles">
         <Toggle label="White border" on={style.border} onChange={(border) => setStyle((s) => ({ ...s, border }))} />

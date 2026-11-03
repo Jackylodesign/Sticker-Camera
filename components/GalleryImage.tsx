@@ -4,6 +4,7 @@
 // no right-click menu, no dragging, no iPhone long-press menu (see CSS).
 export default function GalleryImage({ src }: { src: string }) {
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- our API route already serves the sized PNG
     <img
       src={src}
       alt="Sticker"

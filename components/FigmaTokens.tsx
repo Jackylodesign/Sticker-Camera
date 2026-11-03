@@ -65,7 +65,8 @@ export default function FigmaTokens({ tokens }: { tokens: TokenInfo[] | null }) 
             {tokens.map((t) => (
               <li key={t.id}>
                 <span>
-                  Made {formatDate(t.created_at)} · {t.last_used_at ? `last used ${formatDate(t.last_used_at)}` : "never used"}
+                  Made {formatDate(t.created_at)} ·{" "}
+                  {t.last_used_at ? `last used ${formatDate(t.last_used_at)}` : "never used"}
                 </span>
                 <button className="link-button" onClick={() => revoke(t.id)} disabled={busy}>
                   Revoke

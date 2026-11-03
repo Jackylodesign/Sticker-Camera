@@ -28,9 +28,7 @@ export function prepareSticker(cutout: HTMLCanvasElement): PreparedSticker {
   };
   // Leave enough empty space around the subject so the border and shadow
   // never get cut off at the edge of the image.
-  const pad = Math.ceil(
-    borderPx + shadow.blur * 2 + Math.max(Math.abs(shadow.offsetX), Math.abs(shadow.offsetY)),
-  );
+  const pad = Math.ceil(borderPx + shadow.blur * 2 + Math.max(Math.abs(shadow.offsetX), Math.abs(shadow.offsetY)));
 
   const subject = document.createElement("canvas");
   subject.width = box.w + pad * 2;
@@ -79,7 +77,10 @@ export function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 function findSubjectBounds(c: HTMLCanvasElement) {
   const { width, height } = c;
   const data = c.getContext("2d")!.getImageData(0, 0, width, height).data;
-  let minX = width, minY = height, maxX = -1, maxY = -1;
+  let minX = width,
+    minY = height,
+    maxX = -1,
+    maxY = -1;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (data[(y * width + x) * 4 + 3] > TRIM_ALPHA_THRESHOLD) {

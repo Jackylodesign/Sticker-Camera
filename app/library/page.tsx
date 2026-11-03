@@ -42,6 +42,7 @@ export default async function LibraryPage() {
           {rows.map((r) => (
             <li key={r.id}>
               <Link href={`/library/${r.id}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- private image: the optimizer can't send the sign-in cookie */}
                 <img src={`/api/stickers/${r.id}/image?size=thumb`} alt="" loading="lazy" />
                 {r.is_public && <span className="badge">Public</span>}
               </Link>

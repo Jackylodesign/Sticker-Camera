@@ -147,9 +147,7 @@ async function uploadLoop() {
   for (;;) {
     const now = Date.now();
     // Oldest first; skip ones still waiting for their location.
-    const pending = (await listItems())
-      .filter((i) => i.png && !(i.locatingUntil && i.locatingUntil > now))
-      .reverse();
+    const pending = (await listItems()).filter((i) => i.png && !(i.locatingUntil && i.locatingUntil > now)).reverse();
     const todo = pending.find((i) => !tried.has(i.id));
     if (!todo) return;
 

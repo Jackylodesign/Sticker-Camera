@@ -20,9 +20,7 @@ export type WorkerResponse =
   | { type: "error"; id?: number; message: string };
 
 export type ModelStatus =
-  | { state: "loading"; loaded: number; total: number }
-  | { state: "ready" }
-  | { state: "error"; message: string };
+  { state: "loading"; loaded: number; total: number } | { state: "ready" } | { state: "error"; message: string };
 
 type Listener = (s: ModelStatus) => void;
 type Job = { resolve: (msg: WorkerResponse) => void; reject: (e: Error) => void };
@@ -154,7 +152,12 @@ export async function prepareSelection(photo: HTMLCanvasElement): Promise<number
 /** SAM step 2: returns a photo-sized mask (1 = tapped object, 0 = not) for the given taps. */
 export async function selectObject(photoId: number, points: SelectPoint[]): Promise<Uint8Array> {
   const id = nextId++;
-  const res = await request<Extract<WorkerResponse, { type: "sam-select" }>>({ type: "sam-select", id, photoId, points });
+  const res = await request<Extract<WorkerResponse, { type: "sam-select" }>>({
+    type: "sam-select",
+    id,
+    photoId,
+    points,
+  });
   return res.mask;
 }
 
