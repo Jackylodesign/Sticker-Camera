@@ -211,6 +211,13 @@ describe("PATCH JSON edit", () => {
   it("names sent with coordinates override the looked-up ones", async () => {
     const res = await patchJson({ lat: 22.3, lng: 114.17, place_name: "  My   shop ", area_name: "" });
     expect(await res.json()).toMatchObject({ place_name: "My shop", area_name: null });
+    expect(reverseGeocode).not.toHaveBeenCalled();
+  });
+
+  it("still looks up names when only one name is sent with coordinates", async () => {
+    const res = await patchJson({ lat: 22.3, lng: 114.17, place_name: "My shop" });
+    expect(reverseGeocode).toHaveBeenCalledWith({ lat: 22.3, lng: 114.17 });
+    expect(await res.json()).toMatchObject({ place_name: "My shop", area_name: "Mong Kok, Hong Kong" });
   });
 
   it("lat/lng null clears the location and its names", async () => {

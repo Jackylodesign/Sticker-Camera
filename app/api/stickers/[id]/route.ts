@@ -91,8 +91,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 // JSON with any of:
 //   taken_at: ISO date
-//   lat + lng: numbers (place names are looked up again), or both null (clears
-//              the location and its names)
+//   lat + lng: numbers (place names are looked up again, unless both names
+//              are sent too), or both null (clears the location and its names)
 //   place_name, area_name: text, or null / "" to clear
 // Answers with the sticker's date and place as saved.
 async function editMeta(request: Request, id: string) {
@@ -116,7 +116,9 @@ async function editMeta(request: Request, id: string) {
     } else {
       const coords = parseCoords(body.lat, body.lng);
       if (!coords) return Response.json({ error: "Bad lat/lng" }, { status: 400 });
-      Object.assign(next, coords, await reverseGeocode(coords));
+      // Both names given: they win anyway, so skip the lookup.
+      const named = "place_name" in body && "area_name" in body;
+      Object.assign(next, coords, named ? {} : await reverseGeocode(coords));
     }
   }
   for (const key of ["place_name", "area_name"] as const) {

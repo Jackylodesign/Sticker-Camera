@@ -3,8 +3,9 @@
 
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import GalleryPage from "@/app/gallery/page";
 import HomePage from "@/app/page";
-import { publicStickerIds, publicStickers } from "@/lib/db";
+import { publicStickers } from "@/lib/db";
 import { dbAnswers, queries } from "./mocks";
 
 // A row with everything the database knows, as if the query were widened.
@@ -48,11 +49,13 @@ describe("publicStickers()", () => {
   });
 });
 
-describe("publicStickerIds()", () => {
-  it("selects only ids of public stickers", async () => {
+describe("gallery page", () => {
+  it("uses publicStickers() and shows only image links by id", async () => {
     dbAnswers(() => [FULL_ROW]);
-    expect(await publicStickerIds()).toEqual([FULL_ROW.id]);
-    expect(queries[0].text).toMatch(/^SELECT id FROM stickers WHERE is_public AND display_pathname IS NOT NULL/);
+    const html = renderToString(await GalleryPage());
+    expect(queries[0].text).toContain("WHERE is_public AND display_pathname IS NOT NULL");
+    expect(html).toContain(`/api/gallery/${FULL_ROW.id}/image`);
+    for (const secret of SECRETS) expect(html).not.toContain(secret);
   });
 });
 

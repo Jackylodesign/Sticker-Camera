@@ -49,12 +49,15 @@ function Row({ item }: { item: OutboxItem }) {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Keyed on the id: each refresh brings a new Blob with the same picture
+  // (a sticker's thumbnail never changes), so one URL per row is enough.
   useEffect(() => {
     const url = URL.createObjectURL(item.thumb);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL must be made and revoked together here
     setThumbUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [item.thumb]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
+  }, [item.id]);
 
   const remove = async () => {
     const question =

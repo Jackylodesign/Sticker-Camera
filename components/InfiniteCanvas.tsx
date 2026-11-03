@@ -48,12 +48,15 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     // says "no-store", so setting img.src again would download it again.)
     const urls = new Map<number, Promise<string>>();
     const created: string[] = [];
+    // Set on unmount: a download that finishes later makes no URL (it would leak).
+    let cancelled = false;
     const urlFor = (i: number) => {
       let url = urls.get(i);
       if (!url) {
         url = fetch(`/api/gallery/${ids[i]}/image`)
           .then((res) => (res.ok ? res.blob() : Promise.reject()))
           .then((blob) => {
+            if (cancelled) return "";
             const u = URL.createObjectURL(blob);
             created.push(u);
             return u;
@@ -284,6 +287,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     root.addEventListener("contextmenu", noMenu);
     window.addEventListener("resize", onResize);
     return () => {
+      cancelled = true;
       cancelAnimationFrame(raf);
       clearTimeout(revealTimer);
       root.removeEventListener("pointerdown", onDown);

@@ -45,16 +45,18 @@ in Library and paste it again. Revoke tokens you no longer use in Library → Fi
 
 ## For developers
 
-- Plain JavaScript, no build step: `manifest.json`, `code.js` (Figma main thread) and
-  `ui.html` (the plugin window). Edit them directly; there is nothing to rebuild.
-  In Figma, re-run the plugin to pick up changes.
+- Plain JavaScript: `manifest.json`, `code.js` (Figma main thread) and `ui.html` (the
+  plugin window). Edit them directly. In Figma, re-run the plugin to pick up changes.
 - The window fetches from `https://stickerindex.page` with
   `Authorization: Bearer <token>`. That domain is the only one allowed in
   `manifest.json` → `networkAccess`.
 - The server accepts the token only on: `GET /api/stickers`,
   `GET /api/stickers/[id]/image` (and `?size=thumb`), and `DELETE /api/stickers/[id]`.
   See `requireOwnerOrToken` in `lib/owner.ts` and `isTokenRoute` in `lib/cors.ts`.
-- The border/shadow code in `ui.html` is a copy of `lib/sticker.ts`, `lib/mask.ts`
-  and `STYLE` in `lib/constants.ts`. If you change the look there, copy it here too.
+- The border/shadow code in `ui.html` (between `BEGIN GENERATED` and `END GENERATED`)
+  is built from `lib/sticker.ts`, so the web app is the only place to change the look.
+  After changing `lib/sticker.ts`, `lib/mask.ts` or `STYLE` in `lib/constants.ts`, run
+  `npm run build:plugin` and commit `ui.html`. The tests fail if you forget. The built
+  file is committed, so the folder stays ready to import without Node.
 - The token is kept in `figma.clientStorage` (only on this computer); the server stores
   only its SHA-256 hash.

@@ -6,6 +6,7 @@ import { get } from "@vercel/blob";
 import { ImageResponse } from "next/og";
 import { CANVAS } from "@/lib/constants";
 import { sql } from "@/lib/db";
+import { LOGO_PATHS, LOGO_VIEWBOX } from "@/lib/logo";
 
 export const alt = "Sticker Index: a personal collection of everyday things, cut out and kept as stickers.";
 export const size = { width: 1200, height: 630 };
@@ -83,22 +84,23 @@ function mod(a: number, b: number) {
   return ((a % b) + b) % b;
 }
 
-// Same drawing as components/LogoMark.tsx (kept separate: this one runs in
-// the image generator, which only understands plain SVG).
+// The mark from lib/logo.ts, white (the image generator has no currentColor
+// from a page around it).
 function Mark({ size }: { size: number }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox={LOGO_VIEWBOX}
       fill="none"
       stroke="#fff"
       strokeWidth={2.4}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M14 3H6a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-8" />
-      <path d="M14 3v4a3 3 0 0 0 3 3h4z" />
+      {LOGO_PATHS.map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }

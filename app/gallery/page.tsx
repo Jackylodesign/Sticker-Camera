@@ -1,5 +1,5 @@
 import GalleryImage from "@/components/GalleryImage";
-import { publicStickerIds } from "@/lib/db";
+import { publicStickers } from "@/lib/db";
 
 export const metadata = { title: "Gallery · Sticker Index" };
 // Always read the database, so a sticker made private disappears at once.
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 // PUBLIC page (no sign-in): only public stickers, as small copies.
 export default async function GalleryPage() {
-  const ids = await publicStickerIds();
+  const ids = (await publicStickers()).map((s) => s.id);
 
   return (
     <main className="screen page">
