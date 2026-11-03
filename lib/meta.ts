@@ -41,3 +41,8 @@ export function formatDay(day: string): string {
   if (!y || !m || !d) return day;
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
+
+/** "Sticker from 12 Oct 2026, Mong Kok, Hong Kong": a public sticker's accessible name. */
+export function stickerName(s: { day: string; area: string | null }): string {
+  return `Sticker from ${[formatDay(s.day), s.area].filter(Boolean).join(", ")}`;
+}

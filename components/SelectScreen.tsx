@@ -113,14 +113,23 @@ export default function SelectScreen({
 
   return (
     <main className="screen select">
-      <p className="hint">{hint}</p>
+      <p className="hint" aria-live="polite">
+        {hint}
+      </p>
       <div className="select-area">
-        <canvas ref={canvasRef} onPointerDown={onTap} className={ready ? undefined : "waiting"} />
+        {/* Touch or mouse only: there is no keyboard way to pick a spot yet. */}
+        <canvas
+          ref={canvasRef}
+          onPointerDown={onTap}
+          className={ready ? undefined : "waiting"}
+          role="img"
+          aria-label="Your photo. Tap the object to select it."
+        />
       </div>
 
       {!ready && <ModelStatusBar status={modelStatus} />}
       {error && (
-        <p className="select-error">
+        <p className="select-error" role="alert">
           {error}{" "}
           {prepareFailed && (
             <button

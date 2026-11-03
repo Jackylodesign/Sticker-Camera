@@ -39,9 +39,9 @@ export default async function LibraryPage() {
         <p className="empty">No stickers on the server yet.</p>
       ) : (
         <ul className="sticker-grid">
-          {rows.map((r) => (
+          {rows.map((r, i) => (
             <li key={r.id}>
-              <Link href={`/library/${r.id}`}>
+              <Link href={`/library/${r.id}`} aria-label={`Sticker ${i + 1}${r.is_public ? ", public" : ""}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- private image: the optimizer can't send the sign-in cookie */}
                 <img src={`/api/stickers/${r.id}/image?size=thumb`} alt="" loading="lazy" />
                 {r.is_public && <span className="badge">Public</span>}
