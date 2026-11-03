@@ -15,6 +15,24 @@ Sticker border and shadow settings live in `lib/constants.ts`.
 
 There is also a private Figma plugin: see [`figma-plugin/README.md`](figma-plugin/README.md).
 
+## Checks
+
+Every pull request (and every push to `main`) runs these on GitHub. A red ✗ on the PR means one failed; click **Details** to see which.
+
+- **Typecheck** (`tsc`): the code's types fit together.
+- **Lint** (ESLint): catches likely bugs and React/Next.js mistakes.
+- **Format check** (Prettier): the code is formatted the same way everywhere.
+- **Build** (`next build`): the site still builds, like on Vercel.
+
+To run them on your own computer (needs Node 26, see `.nvmrc`):
+
+```bash
+npm run check
+npm run build
+```
+
+`npm run format` fixes formatting for you. `npm run lint -- --fix` fixes some lint problems.
+
 ## Setup (sign-in, storage, database)
 
 Do these once. Nothing here is created automatically.
