@@ -1,4 +1,5 @@
 import type { ModelStatus } from "@/lib/models";
+import styles from "./ModelStatusBar.module.css";
 
 const mb = (bytes: number) => Math.round(bytes / 1e6);
 
@@ -6,18 +7,18 @@ const mb = (bytes: number) => Math.round(bytes / 1e6);
 export default function ModelStatusBar({ status }: { status: ModelStatus }) {
   if (status.state === "ready") return null;
   if (status.state === "error") {
-    return <p className="model-status error">The sticker AI models failed to load: {status.message}</p>;
+    return <p className={`${styles.status} ${styles.error}`}>The sticker AI models failed to load: {status.message}</p>;
   }
   const pct = status.total ? Math.round((status.loaded / status.total) * 100) : 0;
   return (
-    <div className="model-status">
+    <div className={styles.status}>
       <span>
         {status.total
           ? `Downloading sticker AI models… ${mb(status.loaded)} / ${mb(status.total)} MB`
           : "Preparing sticker AI models…"}
       </span>
       <small>First time only. After this it works from cache.</small>
-      <div className="progress" role="progressbar" aria-label="Model download" aria-valuenow={pct}>
+      <div className={styles.progress} role="progressbar" aria-label="Model download" aria-valuenow={pct}>
         <div style={{ width: `${pct}%` }} />
       </div>
     </div>

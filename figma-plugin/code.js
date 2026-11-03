@@ -1,7 +1,8 @@
-// Sticker Camera plugin: main thread (runs inside Figma, no network here).
+// Sticker Index plugin: main thread (runs inside Figma, no network here).
 // The window (ui.html) does the fetching and styling, then sends us PNG bytes.
 // Plain JavaScript on purpose: no build step needed.
 
+// Old name kept on purpose: renaming it would forget the saved token.
 var TOKEN_KEY = "stickerCameraToken";
 var MAX_SIDE = 400; // inserted stickers are at most this big (longer side), in px
 var GAP = 24; // space between stickers added together, in px

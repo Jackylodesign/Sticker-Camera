@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import InfiniteCanvas from "@/components/InfiniteCanvas";
-import { ABOUT, CANVAS } from "@/lib/constants";
+import { ABOUT } from "@/content/about";
+import { CANVAS } from "@/lib/config/canvas";
 import { publicStickers } from "@/lib/db";
 
 // What link previews show (the picture comes from app/opengraph-image.tsx).

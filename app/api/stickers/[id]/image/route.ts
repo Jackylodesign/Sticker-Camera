@@ -1,6 +1,6 @@
 import { get } from "@vercel/blob";
 import sharp from "sharp";
-import { THUMB_MAX_SIDE } from "@/lib/constants";
+import { THUMB_MAX_SIDE } from "@/lib/config/sticker-style";
 import { sql } from "@/lib/db";
 import { preflight, withCors } from "@/lib/cors";
 import { requireOwnerOrToken } from "@/lib/owner";

@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Toggle } from "@/components/PreviewScreen";
+import preview from "@/components/PreviewScreen.module.css";
 import { makeDisplayImage } from "@/lib/display";
 import { errorMessage } from "@/lib/outbox";
 import { releaseCanvas } from "@/lib/photo";
 import { canvasToPngBlob, prepareSticker, renderSticker, type PreparedSticker, type StickerStyle } from "@/lib/sticker";
+import styles from "./StickerDetail.module.css";
 
 export default function StickerDetail({ id, initialPublic }: { id: string; initialPublic: boolean }) {
   const router = useRouter();
@@ -105,15 +107,15 @@ export default function StickerDetail({ id, initialPublic }: { id: string; initi
 
   return (
     <>
-      <div className="checkerboard">
+      <div className={`${preview.checkerboard} ${preview.short}`}>
         {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
         {url ? <img src={url} alt="Sticker" /> : !error && <div className="spinner" aria-hidden />}
       </div>
 
-      <div className="toggles">
+      <div className={preview.toggles}>
         <Toggle label="White border" on={style.border} onChange={(border) => setStyle((s) => ({ ...s, border }))} />
         <Toggle label="Shadow" on={style.shadow} onChange={(shadow) => setStyle((s) => ({ ...s, shadow }))} />
-        <p className="public-note">
+        <p className={styles.publicNote}>
           {isPublic ? "Public: shown in the Gallery and Canvas as a small copy." : "Private: only you can see it."}
         </p>
       </div>
@@ -124,7 +126,7 @@ export default function StickerDetail({ id, initialPublic }: { id: string; initi
         </p>
       )}
 
-      <div className="controls detail-controls">
+      <div className="controls three">
         <button className="button primary" onClick={download} disabled={!url || busy}>
           Download PNG
         </button>

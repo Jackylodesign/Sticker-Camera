@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CaptureMeta } from "@/lib/location";
 import { errorMessage, saveSticker } from "@/lib/outbox";
 import { canvasToPngBlob, renderSticker, type PreparedSticker, type StickerStyle } from "@/lib/sticker";
+import styles from "./PreviewScreen.module.css";
 
 export default function PreviewScreen({
   sticker,
@@ -63,16 +64,16 @@ export default function PreviewScreen({
   };
 
   return (
-    <main className="screen preview">
-      <div className="checkerboard">
+    <main className="screen">
+      <div className={styles.checkerboard}>
         {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
         {url && <img src={url} alt="Sticker preview" />}
       </div>
 
-      <div className="toggles">
+      <div className={styles.toggles}>
         <Toggle label="White border" on={style.border} onChange={(border) => setStyle((s) => ({ ...s, border }))} />
         <Toggle label="Shadow" on={style.shadow} onChange={(shadow) => setStyle((s) => ({ ...s, shadow }))} />
-        <button className="link download" onClick={download}>
+        <button className={`link ${styles.download}`} onClick={download}>
           Download this preview
         </button>
       </div>
@@ -83,7 +84,7 @@ export default function PreviewScreen({
         </p>
       )}
 
-      <div className="controls">
+      <div className="controls two">
         <button className="button secondary" onClick={onRetake} disabled={saving}>
           Retake
         </button>
@@ -97,7 +98,7 @@ export default function PreviewScreen({
 
 export function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
   return (
-    <label className="toggle">
+    <label className={styles.toggle}>
       <span>{label}</span>
       <input type="checkbox" role="switch" checked={on} onChange={(e) => onChange(e.target.checked)} />
     </label>

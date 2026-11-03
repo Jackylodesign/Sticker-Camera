@@ -14,14 +14,16 @@
 // - "Reduce motion" turns off the glide, the drift and the eased key moves.
 // - The grid stays hidden until the stickers on screen have loaded, then fades
 //   in all at once (no empty frames while loading).
-// Sizes, colours and friction: CANVAS in lib/constants.ts.
+// Sizes, colours and friction: CANVAS in lib/config/canvas.ts. About text: content/about.ts.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import LogoMark from "@/components/LogoMark";
 import { useDialog } from "@/components/useDialog";
-import { ABOUT, CANVAS } from "@/lib/constants";
+import { ABOUT } from "@/content/about";
+import { CANVAS } from "@/lib/config/canvas";
 import type { PublicSticker } from "@/lib/db";
 import { formatDay, stickerName } from "@/lib/meta";
+import styles from "./InfiniteCanvas.module.css";
 
 type Cell = { el: HTMLDivElement; img: HTMLImageElement; index: number };
 
@@ -106,7 +108,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       poolRows = Math.ceil(root.clientHeight / pitch) + 2;
       pool = Array.from({ length: poolCols * poolRows }, () => {
         const el = document.createElement("div");
-        el.className = "canvas-cell";
+        el.className = styles.cell;
         const img = document.createElement("img");
         img.alt = "";
         img.draggable = false;
@@ -235,7 +237,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       lastY = e.clientY;
       if (!moved && Math.hypot(e.clientX - startX, e.clientY - startY) > TAP_SLOP) {
         moved = true;
-        root.classList.add("is-dragging");
+        root.classList.add(styles.isDragging);
       }
       samples.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
       samples = samples.filter((s) => e.timeStamp - s.t < 100);
@@ -244,7 +246,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       if (e.pointerId !== pointerId) return;
       pointerId = -1;
       dragging = false;
-      root.classList.remove("is-dragging");
+      root.classList.remove(styles.isDragging);
       // Fling speed = movement over the last ~100ms, unless the finger
       // stopped before letting go.
       const recent = samples.filter((s) => e.timeStamp - s.t < 100);
@@ -332,7 +334,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     const reveal = () => {
       if (revealed) return;
       revealed = true;
-      root.classList.add("is-ready");
+      root.classList.add(styles.isReady);
     };
     const onScreen = [...new Set(pool.map((cell) => cell.index))];
     Promise.all(onScreen.map((i) => urlFor(i)))
@@ -382,11 +384,11 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
 
   return (
     <>
-      <header className="canvas-bar" style={{ color: CANVAS.text }}>
+      <header className={styles.bar} style={{ color: CANVAS.text }}>
         {hasStickers && (
           <a
             href="#sticker-list"
-            className="skip-link"
+            className={styles.skipLink}
             onClick={(e) => {
               e.preventDefault();
               listTitleRef.current?.focus();
@@ -395,13 +397,13 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
             Skip to sticker list
           </a>
         )}
-        <span className="canvas-bar-title">
+        <span className={styles.title}>
           <LogoMark />
           Sticker Index
         </span>
         <button
           type="button"
-          className={aboutOpen ? "is-active" : undefined}
+          className={aboutOpen ? styles.isActive : undefined}
           aria-haspopup="dialog"
           aria-expanded={aboutOpen}
           onClick={() => setAboutOpen((o) => !o)}
@@ -412,7 +414,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       {hasStickers ? (
         <div
           ref={rootRef}
-          className="canvas"
+          className={styles.canvas}
           style={vars}
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a custom widget: it takes arrow keys and Enter (see onKey)
           tabIndex={0}
@@ -420,14 +422,14 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
           aria-label="Sticker canvas. Use arrow keys to move, Enter to open the sticker in the middle"
         />
       ) : (
-        <div className="canvas is-ready" style={vars}>
-          <p className="empty">Nothing here yet.</p>
+        <div className={`${styles.canvas} ${styles.isReady}`} style={vars}>
+          <p className={`empty ${styles.empty}`}>Nothing here yet.</p>
         </div>
       )}
       {hasStickers && (
         // The same stickers as a plain list, for screen readers and keyboard
-        // users. Hidden until something in it has focus (see globals.css).
-        <section className="sticker-list" aria-labelledby="sticker-list">
+        // users. Hidden until something in it has focus (see the CSS module).
+        <section className={styles.stickerList} aria-labelledby="sticker-list">
           <h2 id="sticker-list" ref={listTitleRef} tabIndex={-1}>
             Stickers
           </h2>
@@ -463,15 +465,15 @@ function AboutDialog({ onClose, fallback }: DialogProps) {
   const ref = useRef<HTMLDivElement>(null);
   useDialog(ref, onClose, fallback);
   return (
-    <div ref={ref} className="about-backdrop">
-      <div className="about-panel" role="dialog" aria-modal="true" aria-label="About" data-keep-open>
+    <div ref={ref} className={styles.aboutBackdrop}>
+      <div className={styles.aboutPanel} role="dialog" aria-modal="true" aria-label="About" data-keep-open>
         {ABOUT.paragraphs.map((text) => (
           <p key={text}>{withLinks(text)}</p>
         ))}
-        <button type="button" className="about-enter" onClick={onClose} data-autofocus>
+        <button type="button" className={styles.aboutEnter} onClick={onClose} data-autofocus>
           {ABOUT.enter}
         </button>
-        <p className="about-credit">{ABOUT.credit}</p>
+        <p className={styles.aboutCredit}>{ABOUT.credit}</p>
       </div>
     </div>
   );
@@ -489,13 +491,13 @@ function StickerDialog({
   useDialog(ref, onClose, fallback);
   const name = sticker ? stickerName(sticker) : "Sticker";
   return (
-    <div ref={ref} className="canvas-overlay" style={style} role="dialog" aria-modal="true" aria-label={name}>
-      <button type="button" className="canvas-close" onClick={onClose}>
+    <div ref={ref} className={styles.overlay} style={style} role="dialog" aria-modal="true" aria-label={name}>
+      <button type="button" className={styles.close} onClick={onClose}>
         Close
       </button>
       {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
       <img src={url} alt={name} draggable={false} data-keep-open onContextMenu={(e) => e.preventDefault()} />
-      <p className="canvas-caption">{caption(sticker)}</p>
+      <p className={styles.caption}>{caption(sticker)}</p>
     </div>
   );
 }

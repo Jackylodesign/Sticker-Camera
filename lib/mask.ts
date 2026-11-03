@@ -1,4 +1,4 @@
-import { SELECTION } from "./constants";
+import { SELECTION } from "./config/models";
 
 /**
  * Cuts the tapped object out of the photo by combining the two models:

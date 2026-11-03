@@ -1,0 +1,54 @@
+/* Tap the object (Android and computers). */
+
+.area {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* one cell exactly the size of this area, so the image's max-height: 100% has a fixed height to fit in */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  background: var(--color-black);
+  overflow: hidden;
+}
+
+/* A canvas scales like an image: it keeps its shape and fits the area.
+   Its on-screen box matches the photo exactly, so taps map straight to pixels. */
+.area canvas {
+  max-width: 100%;
+  max-height: 100%;
+  touch-action: manipulation;
+  cursor: crosshair;
+}
+
+.area canvas.waiting {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Select / + Add / − Remove */
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 12px var(--gutter) 0;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.modes button {
+  min-height: 36px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.modes button.on {
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-weight: 600;
+}

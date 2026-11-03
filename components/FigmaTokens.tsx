@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { createToken, revokeToken } from "@/app/library/token-actions";
+import styles from "./FigmaTokens.module.css";
 
 export type TokenInfo = { id: string; created_at: string; last_used_at: string | null };
 
@@ -43,25 +44,25 @@ export default function FigmaTokens({ tokens }: { tokens: TokenInfo[] | null }) 
   };
 
   return (
-    <details className="figma-tokens">
+    <details className={styles.tokens}>
       <summary>Figma plugin</summary>
       {tokens === null ? (
-        <p className="token-note">Tokens table is missing. Run the Stage 4 SQL in Neon first.</p>
+        <p className={styles.note}>Tokens table is missing. Run the Stage 4 SQL in Neon first.</p>
       ) : (
         <>
-          <p className="token-note">
+          <p className={styles.note}>
             A token lets the Figma plugin list, insert and delete your stickers. Paste it into the plugin.
           </p>
           {newToken && (
-            <div className="token-new">
+            <div className={styles.new}>
               <input readOnly value={newToken} onFocus={(e) => e.currentTarget.select()} aria-label="New token" />
               <button className="button primary" onClick={copy}>
                 {copied ? "Copied" : "Copy"}
               </button>
-              <p className="token-note">Copy it now. It won&apos;t be shown again.</p>
+              <p className={styles.note}>Copy it now. It won&apos;t be shown again.</p>
             </div>
           )}
-          <ul className="token-list">
+          <ul className={styles.list}>
             {tokens.map((t) => (
               <li key={t.id}>
                 <span>
@@ -77,7 +78,7 @@ export default function FigmaTokens({ tokens }: { tokens: TokenInfo[] | null }) 
           <button className="button secondary" onClick={generate} disabled={busy}>
             Generate token
           </button>
-          {error && <p className="token-note">{error}</p>}
+          {error && <p className={styles.note}>{error}</p>}
         </>
       )}
     </details>

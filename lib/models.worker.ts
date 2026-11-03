@@ -6,7 +6,7 @@
 
 import { AutoModel, AutoProcessor, ImageProcessor, RawImage, SamModel, Tensor, env } from "@huggingface/transformers";
 import type { PreTrainedModel, Processor } from "@huggingface/transformers";
-import { MODEL, SAM_MODEL } from "./constants";
+import { MODEL, SAM_MODEL } from "./config/models";
 import type { WorkerRequest, WorkerResponse } from "./models";
 
 // Always download from the Hugging Face hub (never look for files on our own server).

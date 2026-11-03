@@ -1,0 +1,56 @@
+/* The grid of stickers on /gallery (public) and /library (owner). */
+
+.grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0 var(--gutter);
+  display: grid;
+  /* 2 columns on a phone, more on wider screens */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  align-content: start;
+  gap: 12px;
+}
+
+.grid li > * {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background-color: #fff;
+  background-image: conic-gradient(var(--color-checker) 25%, #fff 0 50%, var(--color-checker) 0 75%, #fff 0);
+  background-size: 16px 16px;
+}
+
+.grid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: #1f7a35;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gallery li > * {
+  background: var(--color-line);
+}
+
+/* Gallery images: no iPhone long-press menu ("Save to Photos"), no selecting. */
+.gallery img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

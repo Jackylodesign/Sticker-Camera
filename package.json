@@ -1,6 +1,6 @@
 {
-  "name": "sticker-camera",
-  "version": "0.1.0",
+  "name": "sticker-index",
+  "version": "1.0.0",
   "private": true,
   "engines": {
     "node": "26.x"
@@ -14,7 +14,7 @@
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test"

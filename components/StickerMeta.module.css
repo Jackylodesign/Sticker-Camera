@@ -1,0 +1,107 @@
+/* Library detail: date and place (owner only). */
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--gutter);
+  border-top: 1px solid var(--color-line);
+  margin-top: 8px;
+}
+
+.meta label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.meta input {
+  padding: 10px;
+  border: 1px solid var(--color-field-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px; /* 16px stops iPhone zooming in on focus */
+}
+
+/* Place search: field + button on one row, results as a tappable list. */
+.search {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.search label {
+  flex: 1;
+}
+
+.results {
+  list-style: none;
+  margin: -4px 0 0;
+  padding: 0;
+  border: 1px solid #333;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.results li + li {
+  border-top: 1px solid var(--color-line);
+}
+
+.results button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: #151515;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.results button:hover {
+  background: #1f1f1f;
+}
+
+.results small {
+  font-size: 12px;
+  color: #888;
+}
+
+.coords {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.coords a {
+  color: var(--color-muted);
+}
+
+.coords b {
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.message {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* Kept in the page while empty (so screen readers hear new messages), without a gap. */
+.message:empty {
+  position: absolute;
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { canvasToPngBlob } from "@/lib/sticker";
+import styles from "./LiftScreen.module.css";
 
 /**
  * iPhone / iPad only. Instead of our own AI, we use Apple's built-in subject
@@ -85,15 +86,15 @@ export default function LiftScreen({
   };
 
   return (
-    <main className="screen lift">
+    <main className="screen">
       <p className="hint">Touch and hold the object, then tap Copy Subject</p>
-      <div className="lift-area">
+      <div className={styles.area}>
         {/* A plain <img> so iOS offers "Copy Subject" on a long press. Don't add
             touch-callout/user-select/pointer-events blocking here or on parents. */}
         {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
         {url && <img src={url} alt="Your capture" />}
       </div>
-      <ol className="lift-steps">
+      <ol className={styles.steps}>
         <li>Touch and hold the thing you want until it glows</li>
         <li>
           Tap <b>Copy Subject</b>

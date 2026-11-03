@@ -1,6 +1,7 @@
 import GalleryImage from "@/components/GalleryImage";
 import { publicStickers } from "@/lib/db";
 import { stickerName } from "@/lib/meta";
+import grid from "@/app/sticker-grid.module.css";
 
 export const metadata = { title: "Gallery · Sticker Index" };
 // Always read the database, so a sticker made private disappears at once.
@@ -18,7 +19,7 @@ export default async function GalleryPage() {
       {stickers.length === 0 ? (
         <p className="empty">Nothing here yet.</p>
       ) : (
-        <ul className="sticker-grid gallery">
+        <ul className={`${grid.grid} ${grid.gallery}`}>
           {stickers.map((s) => (
             <li key={s.id}>
               <GalleryImage src={`/api/gallery/${s.id}/image`} alt={stickerName(s)} />

@@ -1,7 +1,7 @@
 // Makes the small copy shown in the public gallery. It runs in the
 // owner's browser (see the PR description for why), from the styled sticker.
 
-import { DISPLAY_MAX_SIDE, WATERMARK } from "./constants";
+import { DISPLAY_MAX_SIDE, WATERMARK } from "./config/sticker-style";
 import { releaseCanvas } from "./photo";
 import { canvasToPngBlob } from "./sticker";
 

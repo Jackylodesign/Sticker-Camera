@@ -11,7 +11,7 @@
 // Blobs in IndexedDB (always in Private Browsing). If the outbox can't be
 // used at all, Save uploads straight away instead.
 
-import { MAX_UPLOAD_BYTES } from "./limits";
+import { MAX_UPLOAD_BYTES } from "./config/limits";
 import type { CaptureMeta } from "./location";
 import { canvasToPngBlob } from "./sticker";
 
@@ -40,7 +40,7 @@ type StoredItem = Omit<OutboxItem, "thumb" | "png"> & { thumb: Bytes; png?: Byte
 /** Shown when this device can't keep stickers (e.g. Private Browsing). */
 export const NO_OUTBOX_MESSAGE = "Private browsing: stickers upload right away and aren't kept for offline retry.";
 
-const DB_NAME = "sticker-camera";
+const DB_NAME = "sticker-camera"; // old name, kept so saved stickers aren't lost
 const STORE = "outbox";
 const THUMB_SIZE = 200;
 const LOCATE_MS = 20000; // a bit longer than currentPosition() gives up

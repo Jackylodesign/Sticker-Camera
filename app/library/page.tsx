@@ -4,8 +4,10 @@ import { auth, isOwner } from "@/auth";
 import FigmaTokens, { type TokenInfo } from "@/components/FigmaTokens";
 import RefreshPublicCopies from "@/components/RefreshPublicCopies";
 import { sql } from "@/lib/db";
+import grid from "@/app/sticker-grid.module.css";
+import styles from "./page.module.css";
 
-export const metadata = { title: "Library · Sticker Camera" };
+export const metadata = { title: "Library · Sticker Index" };
 
 type Row = { id: string; is_public: boolean };
 
@@ -31,20 +33,20 @@ export default async function LibraryPage() {
       </header>
       <FigmaTokens tokens={tokens} />
       {publicIds.length > 0 && (
-        <div className="library-tools">
+        <div className={styles.tools}>
           <RefreshPublicCopies ids={publicIds} />
         </div>
       )}
       {rows.length === 0 ? (
         <p className="empty">No stickers on the server yet.</p>
       ) : (
-        <ul className="sticker-grid">
+        <ul className={grid.grid}>
           {rows.map((r, i) => (
             <li key={r.id}>
               <Link href={`/library/${r.id}`} aria-label={`Sticker ${i + 1}${r.is_public ? ", public" : ""}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- private image: the optimizer can't send the sign-in cookie */}
                 <img src={`/api/stickers/${r.id}/image?size=thumb`} alt="" loading="lazy" />
-                {r.is_public && <span className="badge">Public</span>}
+                {r.is_public && <span className={grid.badge}>Public</span>}
               </Link>
             </li>
           ))}

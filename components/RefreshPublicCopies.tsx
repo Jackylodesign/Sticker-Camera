@@ -9,6 +9,7 @@ import { makeDisplayImage } from "@/lib/display";
 import { errorMessage } from "@/lib/outbox";
 import { releaseCanvas } from "@/lib/photo";
 import { prepareSticker, renderSticker } from "@/lib/sticker";
+import styles from "./RefreshPublicCopies.module.css";
 
 export default function RefreshPublicCopies({ ids }: { ids: string[] }) {
   const [status, setStatus] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export default function RefreshPublicCopies({ ids }: { ids: string[] }) {
       <button className="link-button" onClick={run} disabled={busy}>
         Refresh public copies
       </button>
-      <span className="refresh-status" role="status">
+      <span className={styles.status} role="status">
         {status}
       </span>
     </>

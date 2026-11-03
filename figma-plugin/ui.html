@@ -1,4 +1,4 @@
-<!-- Sticker Camera plugin: the window. Plain HTML + JavaScript, no build step.
+<!-- Sticker Index plugin: the window. Plain HTML + JavaScript, no build step.
      Talks to https://stickerindex.page with your personal token,
      styles the sticker, and sends the PNG bytes to code.js. -->
 <style>
@@ -224,7 +224,7 @@
   <div class="logo">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
   </div>
-  <h1>Connect to Sticker Camera</h1>
+  <h1>Connect to Sticker Index</h1>
   <p>
     In your Library, open <b>Figma plugin → Generate token</b>, copy it, and paste it here.
   </p>
@@ -314,11 +314,11 @@
     }
     if (err && err.kind === "offline") {
       return navigator.onLine
-        ? "Can't reach Sticker Camera. Check your internet connection and try again."
+        ? "Can't reach Sticker Index. Check your internet connection and try again."
         : "You're offline. Connect to the internet and try again.";
     }
     if (err && err.kind === "server") {
-      return "Sticker Camera had a problem (error " + err.status + "). Try again in a moment.";
+      return "Sticker Index had a problem (error " + err.status + "). Try again in a moment.";
     }
     return (err && err.message) || "Something went wrong. Try again.";
   }
@@ -662,7 +662,7 @@ var StickerStyle = (() => {
     renderSticker: () => renderSticker
   });
 
-  // lib/constants.ts
+  // lib/config/sticker-style.ts
   var STYLE = {
     border: {
       width: 0.03,
@@ -677,8 +677,6 @@ var StickerStyle = (() => {
       // positive = shadow falls downwards
     }
   };
-  var IS_MOBILE = typeof navigator !== "undefined" && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-  var IS_IOS = typeof navigator !== "undefined" && (/iPhone|iPad|iPod/.test(navigator.userAgent) || /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   var TRIM_ALPHA_THRESHOLD = 10;
 
   // lib/mask.ts
@@ -721,6 +719,10 @@ var StickerStyle = (() => {
       d[q] = (q - v[k]) * (q - v[k]) + f[v[k]];
     }
   }
+
+  // lib/config/device.ts
+  var IS_MOBILE = typeof navigator !== "undefined" && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  var IS_IOS = typeof navigator !== "undefined" && (/iPhone|iPad|iPod/.test(navigator.userAgent) || /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
   // lib/photo.ts
   function releaseCanvas(canvas) {

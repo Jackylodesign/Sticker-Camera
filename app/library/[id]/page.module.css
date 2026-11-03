@@ -1,0 +1,5 @@
+/* The detail page scrolls, so the date and place fit below the sticker. */
+:global(.screen).detail {
+  height: auto;
+  min-height: 100dvh;
+}

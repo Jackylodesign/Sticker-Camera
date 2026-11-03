@@ -1,4 +1,4 @@
-import { MAX_PHOTO_SIDE } from "./constants";
+import { MAX_PHOTO_SIDE } from "./config/device";
 
 // Photos only ever live in memory as <canvas> elements. Nothing here saves
 // to the Photos library or to disk.

@@ -1,4 +1,4 @@
-# Sticker Camera — Figma plugin (private)
+# Sticker Index — Figma plugin (private)
 
 Browse your sticker library inside Figma (or FigJam) and drop stickers into the file,
 with or without the white border and shadow. You can also delete stickers from here.
@@ -22,7 +22,7 @@ computer where you import it.
    - Open **Figma plugin** → **Generate token** → **Copy**.
      The token is shown only once. If you lose it, generate a new one.
 4. **Connect.**
-   - In Figma: **Plugins → Development → Sticker Camera**.
+   - In Figma: **Plugins → Development → Sticker Index**.
    - Paste the token and click **Connect**. Figma remembers it on this computer.
 
 To update the plugin later, download the ZIP again and replace the folder (same place,
@@ -55,7 +55,7 @@ in Library and paste it again. Revoke tokens you no longer use in Library → Fi
   See `requireOwnerOrToken` in `lib/owner.ts` and `isTokenRoute` in `lib/cors.ts`.
 - The border/shadow code in `ui.html` (between `BEGIN GENERATED` and `END GENERATED`)
   is built from `lib/sticker.ts`, so the web app is the only place to change the look.
-  After changing `lib/sticker.ts`, `lib/mask.ts` or `STYLE` in `lib/constants.ts`, run
+  After changing `lib/sticker.ts`, `lib/mask.ts` or `STYLE` in `lib/config/sticker-style.ts`, run
   `npm run build:plugin` and commit `ui.html`. The tests fail if you forget. The built
   file is committed, so the folder stays ready to import without Node.
 - The token is kept in `figma.clientStorage` (only on this computer); the server stores
