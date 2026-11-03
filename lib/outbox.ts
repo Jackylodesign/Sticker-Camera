@@ -40,7 +40,7 @@ type StoredItem = Omit<OutboxItem, "thumb" | "png"> & { thumb: Bytes; png?: Byte
 /** Shown when this device can't keep stickers (e.g. Private Browsing). */
 export const NO_OUTBOX_MESSAGE = "Private browsing: stickers upload right away and aren't kept for offline retry.";
 
-const DB_NAME = "sticker-camera";
+const DB_NAME = "sticker-camera"; // old name, kept so saved stickers aren't lost
 const STORE = "outbox";
 const THUMB_SIZE = 200;
 const LOCATE_MS = 20000; // a bit longer than currentPosition() gives up

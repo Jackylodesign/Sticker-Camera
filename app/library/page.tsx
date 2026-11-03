@@ -7,7 +7,7 @@ import { sql } from "@/lib/db";
 import grid from "@/app/sticker-grid.module.css";
 import styles from "./page.module.css";
 
-export const metadata = { title: "Library · Sticker Camera" };
+export const metadata = { title: "Library · Sticker Index" };
 
 type Row = { id: string; is_public: boolean };
 

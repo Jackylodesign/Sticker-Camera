@@ -1,4 +1,4 @@
-# Sticker Camera — Figma plugin (private)
+# Sticker Index — Figma plugin (private)
 
 Browse your sticker library inside Figma (or FigJam) and drop stickers into the file,
 with or without the white border and shadow. You can also delete stickers from here.
@@ -22,7 +22,7 @@ computer where you import it.
    - Open **Figma plugin** → **Generate token** → **Copy**.
      The token is shown only once. If you lose it, generate a new one.
 4. **Connect.**
-   - In Figma: **Plugins → Development → Sticker Camera**.
+   - In Figma: **Plugins → Development → Sticker Index**.
    - Paste the token and click **Connect**. Figma remembers it on this computer.
 
 To update the plugin later, download the ZIP again and replace the folder (same place,

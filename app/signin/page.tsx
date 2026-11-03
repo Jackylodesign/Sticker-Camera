@@ -1,6 +1,6 @@
 import { signIn } from "@/auth";
 
-export const metadata = { title: "Sign in · Sticker Camera" };
+export const metadata = { title: "Sign in · Sticker Index" };
 
 export default async function SignInPage({
   searchParams,
@@ -13,7 +13,7 @@ export default async function SignInPage({
 
   return (
     <main className="screen centered">
-      <h1>Sticker Camera</h1>
+      <h1>Sticker Index</h1>
       <p>This is a private app. Sign in to continue.</p>
       {error && (
         <p className="notice">

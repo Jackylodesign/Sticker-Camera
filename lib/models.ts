@@ -40,7 +40,7 @@ function setStatus(s: ModelStatus) {
 // If iOS runs out of memory it silently reloads the page. To be able to say
 // what happened, we leave a small "busy" note in sessionStorage (it lives only
 // in this tab, and holds no photo) while the models are working.
-const BUSY_KEY = "sticker-camera-busy";
+const BUSY_KEY = "sticker-camera-busy"; // old name, kept on purpose
 function setBusy(on: boolean) {
   try {
     if (on) sessionStorage.setItem(BUSY_KEY, "1");

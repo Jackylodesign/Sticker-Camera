@@ -1,4 +1,4 @@
-# Sticker-Camera
+# Sticker Index
 
 A personal camera that turn photos into stickers
 

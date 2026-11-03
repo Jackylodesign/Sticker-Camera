@@ -3,7 +3,7 @@ import { signOut } from "@/auth";
 import HistoryList from "@/components/HistoryList";
 import styles from "./page.module.css";
 
-export const metadata = { title: "History · Sticker Camera" };
+export const metadata = { title: "History · Sticker Index" };
 
 export default function HistoryPage() {
   return (

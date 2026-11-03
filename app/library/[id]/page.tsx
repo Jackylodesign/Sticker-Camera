@@ -6,7 +6,7 @@ import StickerDetail from "@/components/StickerDetail";
 import StickerMeta, { type Meta } from "@/components/StickerMeta";
 import styles from "./page.module.css";
 
-export const metadata = { title: "Sticker · Sticker Camera" };
+export const metadata = { title: "Sticker · Sticker Index" };
 
 // One sticker: preview with styles, download, public/private, delete (owner only).
 export default async function StickerPage({ params }: { params: Promise<{ id: string }> }) {
