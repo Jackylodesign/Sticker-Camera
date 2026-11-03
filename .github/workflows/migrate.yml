@@ -1,0 +1,37 @@
+name: Migrate
+
+# Run by hand only: GitHub → Actions → Migrate → Run workflow.
+# Never runs on push or pull requests.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run only lists what would run. apply changes the database."
+        type: choice
+        options: [dry-run, apply]
+        default: dry-run
+
+# Two runs at once would race; the second one waits.
+concurrency:
+  group: migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # GitHub hides secrets in the log; the script never prints it either.
+      - name: Migrate (${{ inputs.mode }})
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:migrate -- ${{ inputs.mode == 'dry-run' && '--dry-run' || '' }}
