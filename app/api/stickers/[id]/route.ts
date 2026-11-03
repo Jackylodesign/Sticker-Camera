@@ -1,5 +1,5 @@
 import { del, put } from "@vercel/blob";
-import { DISPLAY_MAX_SIDE } from "@/lib/constants";
+import { DISPLAY_MAX_SIDE } from "@/lib/config/sticker-style";
 import { sql } from "@/lib/db";
 import { preflight, withCors } from "@/lib/cors";
 import { reverseGeocode } from "@/lib/geocode";

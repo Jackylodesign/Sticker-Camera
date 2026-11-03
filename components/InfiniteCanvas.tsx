@@ -14,12 +14,13 @@
 // - "Reduce motion" turns off the glide, the drift and the eased key moves.
 // - The grid stays hidden until the stickers on screen have loaded, then fades
 //   in all at once (no empty frames while loading).
-// Sizes, colours and friction: CANVAS in lib/constants.ts.
+// Sizes, colours and friction: CANVAS in lib/config/canvas.ts. About text: content/about.ts.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import LogoMark from "@/components/LogoMark";
 import { useDialog } from "@/components/useDialog";
-import { ABOUT, CANVAS } from "@/lib/constants";
+import { ABOUT } from "@/content/about";
+import { CANVAS } from "@/lib/config/canvas";
 import type { PublicSticker } from "@/lib/db";
 import { formatDay, stickerName } from "@/lib/meta";
 import styles from "./InfiniteCanvas.module.css";

@@ -3,8 +3,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/stickers/route";
 import { PATCH } from "@/app/api/stickers/[id]/route";
-import { DISPLAY_MAX_SIDE } from "@/lib/constants";
-import { MAX_UPLOAD_BYTES } from "@/lib/limits";
+import { MAX_UPLOAD_BYTES } from "@/lib/config/limits";
+import { DISPLAY_MAX_SIDE } from "@/lib/config/sticker-style";
 import { blob, dbAnswers, OWNER, queries, signedInAs, sql } from "./mocks";
 import { pngFile } from "./png";
 

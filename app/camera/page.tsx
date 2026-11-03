@@ -6,7 +6,7 @@ import LiftScreen from "@/components/LiftScreen";
 import ModelStatusBar from "@/components/ModelStatusBar";
 import PreviewScreen from "@/components/PreviewScreen";
 import SelectScreen from "@/components/SelectScreen";
-import { IS_IOS } from "@/lib/constants";
+import { IS_IOS } from "@/lib/config/device";
 import { cutOutSelection } from "@/lib/mask";
 import {
   getForegroundAlpha,

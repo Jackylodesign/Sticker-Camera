@@ -4,7 +4,7 @@
 
 import { get } from "@vercel/blob";
 import { ImageResponse } from "next/og";
-import { CANVAS } from "@/lib/constants";
+import { CANVAS } from "@/lib/config/canvas";
 import { sql } from "@/lib/db";
 import { LOGO_PATHS, LOGO_VIEWBOX } from "@/lib/logo";
 

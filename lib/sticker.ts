@@ -3,7 +3,7 @@
 // The stored sticker (Stage 2) will be the clean cutout only; this styling is
 // applied at use time.
 
-import { STYLE, TRIM_ALPHA_THRESHOLD } from "./constants";
+import { STYLE, TRIM_ALPHA_THRESHOLD } from "./config/sticker-style";
 import { distanceTransform2D } from "./mask";
 import { releaseCanvas } from "./photo";
 

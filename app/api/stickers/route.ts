@@ -1,6 +1,6 @@
 import { put } from "@vercel/blob";
 import { sql, type StickerRow } from "@/lib/db";
-import { MAX_UPLOAD_BYTES } from "@/lib/limits";
+import { MAX_UPLOAD_BYTES } from "@/lib/config/limits";
 import { preflight, withCors } from "@/lib/cors";
 import { reverseGeocode } from "@/lib/geocode";
 import { parseCoords, parseTakenAt } from "@/lib/meta";

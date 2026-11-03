@@ -2,7 +2,7 @@
 // Vercel functions.
 
 import { neon } from "@neondatabase/serverless";
-import { DATE_TIME_ZONE } from "./constants";
+import { DATE_TIME_ZONE } from "./config/limits";
 
 export const sql = neon(process.env.DATABASE_URL!);
 

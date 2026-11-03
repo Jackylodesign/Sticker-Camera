@@ -11,7 +11,7 @@
 // Blobs in IndexedDB (always in Private Browsing). If the outbox can't be
 // used at all, Save uploads straight away instead.
 
-import { MAX_UPLOAD_BYTES } from "./limits";
+import { MAX_UPLOAD_BYTES } from "./config/limits";
 import type { CaptureMeta } from "./location";
 import { canvasToPngBlob } from "./sticker";
 

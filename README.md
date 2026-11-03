@@ -11,7 +11,7 @@ npm run dev
 
 Then open http://localhost:3000. On a computer without a camera, use **Choose from library**.
 
-Sticker border and shadow settings live in `lib/constants.ts`.
+Sticker border and shadow settings live in `lib/config/sticker-style.ts`.
 
 There is also a private Figma plugin: see [`figma-plugin/README.md`](figma-plugin/README.md).
 
