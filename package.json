@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:setup": "node --env-file=.env.local scripts/setup-db.mjs",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

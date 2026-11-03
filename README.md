@@ -44,11 +44,13 @@ Do these once. Nothing here is created automatically.
 2. **Create → Neon (Postgres).** Connect it to the project for all environments.
    This adds `DATABASE_URL` for you.
 
-### 2. Create the database table
+### 2. Create the database tables
 
-1. In Vercel → Settings → Environment Variables, copy the value of `DATABASE_URL`.
-2. On your computer: copy `.env.example` to `.env.local` and paste it into `DATABASE_URL=`.
-3. Run `npm run db:setup`. It prints "Database is ready". Running it again is safe.
+1. In Neon → your project → **Connection details**, copy the connection string.
+   (Vercel hides "Sensitive" values, so copy it from Neon.)
+2. In GitHub → this repo → Settings → Secrets and variables → Actions → **New repository secret**,
+   name it `DATABASE_URL` and paste the connection string.
+3. Run the **Migrate** action with `apply` (see [Database changes](#database-changes)).
 
 ### 3. Google sign-in (Google Cloud Console → APIs & Services)
 
@@ -82,3 +84,29 @@ Then redeploy (Deployments → ⋯ → Redeploy) so the new values are used.
 ### Running locally with sign-in
 
 Fill in `.env.local` (all of the above except `AUTH_REDIRECT_PROXY_URL`), then `npm run dev`.
+
+## Database changes
+
+Every change to the database is a numbered SQL file in `migrations/`. The table
+`schema_migrations` remembers which files have run, so each runs only once.
+
+**Adding one**
+
+1. Make the next file, e.g. `migrations/0005_add_something.sql` (next number, no gaps).
+2. Start it with a `--` comment saying why it exists.
+3. Keep it safe to run twice: `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`,
+   and an `UPDATE` only with `WHERE … IS NULL`. The tests check this.
+4. Put it in the same PR as the code that needs it.
+
+**Running it** (after the PR is merged)
+
+1. GitHub → **Actions** → **Migrate** → **Run workflow**.
+2. Pick `dry-run` first. The log lists each file as `already applied` or `would run`.
+3. If that looks right, run it again with `apply`. Each file runs in its own transaction;
+   if one fails, it stops there and nothing from that file is saved.
+
+Merging deploys the new code right away, and it may fail until the new columns exist,
+so run `apply` soon after merging.
+
+Vercel builds never touch the database: previews and production share it, so changes
+only happen when you run **Migrate** by hand.
