@@ -38,9 +38,12 @@ export default function StickerMeta({ id, initial }: { id: string; initial: Meta
       if (!res.ok) throw new Error(body?.error ?? `Server error ${res.status}`);
       const saved = body as Meta;
       setMeta(saved);
-      setTaken(toLocalInput(saved.taken_at));
-      setPlace(saved.place_name ?? "");
-      setArea(saved.area_name ?? "");
+      // Only refresh the fields this request changed, so unsaved edits in
+      // the others (e.g. a new date) survive picking a place.
+      const moved = "lat" in changes;
+      if ("taken_at" in changes) setTaken(toLocalInput(saved.taken_at));
+      if (moved || "place_name" in changes) setPlace(saved.place_name ?? "");
+      if (moved || "area_name" in changes) setArea(saved.area_name ?? "");
       setMessage(done);
     } catch (err) {
       setMessage(`Couldn't save: ${errorMessage(err)}`);

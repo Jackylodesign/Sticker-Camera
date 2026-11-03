@@ -28,6 +28,9 @@ export type OutboxItem = {
   takenAt?: number;
   lat?: number;
   lng?: number;
+  // Waiting for the phone's location until this time (ms). Not uploaded
+  // before then, so the location can still be added.
+  locatingUntil?: number;
 };
 
 // How images are kept in IndexedDB (plain bytes + type).
@@ -40,6 +43,7 @@ export const NO_OUTBOX_MESSAGE = "Private browsing: stickers upload right away a
 const DB_NAME = "sticker-camera";
 const STORE = "outbox";
 const THUMB_SIZE = 200;
+const LOCATE_MS = 20000; // a bit longer than currentPosition() gives up
 
 // ---------- public API ----------
 
@@ -53,18 +57,34 @@ export async function saveSticker(cutout: HTMLCanvasElement, meta?: CaptureMeta)
   const createdAt = Date.now();
   const png = await fitUploadLimit(cutout);
   const thumb = await makeThumbnail(cutout);
-  const coords = await meta?.position; // usually known long before Save
-  const info = { createdAt, takenAt: meta?.takenAt ?? createdAt, ...coords };
+  const info = { createdAt, takenAt: meta?.takenAt ?? createdAt };
+  const position = meta?.position;
   try {
-    await put({ id, ...info, status: "waiting", png: await toBytes(png), thumb: await toBytes(thumb) });
+    // Store it first, so it's safe even if the page closes while the
+    // location is still coming (e.g. the "Allow location?" prompt is open).
+    await put({
+      id,
+      ...info,
+      status: "waiting",
+      png: await toBytes(png),
+      thumb: await toBytes(thumb),
+      ...(position && { locatingUntil: createdAt + LOCATE_MS }),
+    });
   } catch {
     // Can't keep it on this device: upload now, or tell why it failed.
-    await uploadOne(id, png, info);
+    await uploadOne(id, png, { ...info, ...(await position) });
     return "uploaded";
   }
   // Ask the browser not to clear our storage when space runs low.
   navigator.storage?.persist?.().catch(() => {});
-  void uploadPending();
+  // Add the location when it arrives (never blocks Save), then upload.
+  void (async () => {
+    if (position) {
+      const coords = await position;
+      await update(id, { ...coords, locatingUntil: undefined }).catch(() => {});
+    }
+    void uploadPending();
+  })();
   return "queued";
 }
 
@@ -82,11 +102,16 @@ export function errorMessage(err: unknown): string {
 
 /** Removes a sticker: from the server if it was uploaded, then from here. */
 export async function deleteItem(item: OutboxItem): Promise<void> {
-  if (item.status === "uploaded") {
-    const res = await fetch(`/api/stickers/${item.id}`, { method: "DELETE" });
-    // 404 = already gone on the server, which is fine.
-    if (!res.ok && res.status !== 404) throw new Error(await errorText(res));
+  // Ask the server too, whatever the status: an upload marked "failed" may
+  // still have arrived (only the reply was lost). 404 = not there, fine.
+  let res: Response | null = null;
+  try {
+    res = await fetch(`/api/stickers/${item.id}`, { method: "DELETE" });
+  } catch {
+    // Offline: an uploaded sticker can't be deleted now; a local-only one can.
+    if (item.status === "uploaded") throw new Error("Couldn't reach the server. Try again when you're online.");
   }
+  if (res && !res.ok && res.status !== 404) throw new Error(await errorText(res));
   await tx("readwrite", (s) => s.delete(item.id));
   notify();
 }
@@ -120,7 +145,11 @@ async function uploadLoop() {
   const tried = new Set<string>();
   // Keep going until every sticker had one try (one may be saved mid-loop).
   for (;;) {
-    const pending = (await listItems()).filter((i) => i.png).reverse(); // oldest first
+    const now = Date.now();
+    // Oldest first; skip ones still waiting for their location.
+    const pending = (await listItems())
+      .filter((i) => i.png && !(i.locatingUntil && i.locatingUntil > now))
+      .reverse();
     const todo = pending.find((i) => !tried.has(i.id));
     if (!todo) return;
 

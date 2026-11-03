@@ -161,6 +161,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     let lastX = 0;
     let lastY = 0;
     let moved = false;
+    let stoppedFling = false; // this tap only stopped a glide
     let samples: { x: number; y: number; t: number }[] = [];
 
     const onDown = (e: PointerEvent) => {
@@ -169,6 +170,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       root.setPointerCapture(pointerId);
       dragging = true;
       moved = false;
+      stoppedFling = Math.hypot(vx, vy) > 0.05; // still gliding: this tap just stops it
       vx = vy = 0;
       startX = lastX = e.clientX;
       startY = lastY = e.clientY;
@@ -235,7 +237,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
 
     // ---------- tap / click: open one sticker ----------
     const onClick = (e: MouseEvent) => {
-      if (moved) return;
+      if (moved || stoppedFling) return;
       const px = e.clientX - ox - dx - CANVAS.gap / 2;
       const py = e.clientY - oy - dy - CANVAS.gap / 2;
       const c = Math.floor(px / pitch);
