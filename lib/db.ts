@@ -34,11 +34,13 @@ export type PublicSticker = {
 
 /** Public stickers (newest first) with their day and coarse area only. */
 export async function publicStickers(): Promise<PublicSticker[]> {
-  return (await sql`
+  const rows = (await sql`
     SELECT id,
       to_char(COALESCE(taken_at, created_at) AT TIME ZONE ${DATE_TIME_ZONE}, 'YYYY-MM-DD') AS day,
       area_name AS area
     FROM stickers
     WHERE is_public AND display_pathname IS NOT NULL
     ORDER BY created_at DESC`) as PublicSticker[];
+  // Copy only these three fields, so a wider SELECT later can't leak more.
+  return rows.map(({ id, day, area }) => ({ id, day, area }));
 }
