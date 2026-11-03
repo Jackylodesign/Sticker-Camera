@@ -184,14 +184,20 @@ async function handle(msg: WorkerRequest) {
       [1, 1, n, 2],
     );
     // Label 1 = "this is part of the object", 0 = "this is not".
-    const input_labels = new Tensor("int64", BigInt64Array.from(msg.points.map((p) => BigInt(p.include ? 1 : 0))), [1, 1, n]);
+    const input_labels = new Tensor("int64", BigInt64Array.from(msg.points.map((p) => BigInt(p.include ? 1 : 0))), [
+      1,
+      1,
+      n,
+    ]);
 
     const outputs = await sam.model({ ...embeddings, input_points, input_labels });
     // SAM proposes 3 masks (small part / medium / whole object) with a confidence
     // score each. We take the most confident one.
-    const masks = await (sam.processor as unknown as {
-      post_process_masks: (m: Tensor, o: unknown, r: unknown) => Promise<Tensor[]>;
-    }).post_process_masks(outputs.pred_masks, inputs.original_sizes, inputs.reshaped_input_sizes);
+    const masks = await (
+      sam.processor as unknown as {
+        post_process_masks: (m: Tensor, o: unknown, r: unknown) => Promise<Tensor[]>;
+      }
+    ).post_process_masks(outputs.pred_masks, inputs.original_sizes, inputs.reshaped_input_sizes);
     const scores = outputs.iou_scores.data as Float32Array;
     let best = 0;
     for (let i = 1; i < scores.length; i++) if (scores[i] > scores[best]) best = i;

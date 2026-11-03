@@ -53,7 +53,9 @@ export default function LiftScreen({
     }
     setBusy(true);
     try {
-      const item = items.find((i) => i.types.includes("image/png")) ?? items.find((i) => i.types.some((t) => t.startsWith("image/")));
+      const item =
+        items.find((i) => i.types.includes("image/png")) ??
+        items.find((i) => i.types.some((t) => t.startsWith("image/")));
       if (!item) {
         setError("No image on the clipboard yet. Touch and hold the object, tap Copy Subject, then try again.");
         return;
@@ -69,7 +71,9 @@ export default function LiftScreen({
       // A real "Copy Subject" result has a transparent background. If there is
       // no transparency at all, something else was copied (e.g. the whole photo).
       if (!hasTransparency(canvas)) {
-        setError("That image has no transparent background. Make sure you tap “Copy Subject” (not “Copy”), then paste again.");
+        setError(
+          "That image has no transparent background. Make sure you tap “Copy Subject” (not “Copy”), then paste again.",
+        );
         return;
       }
       onSticker(canvas);
@@ -91,7 +95,9 @@ export default function LiftScreen({
       </div>
       <ol className="lift-steps">
         <li>Touch and hold the thing you want until it glows</li>
-        <li>Tap <b>Copy Subject</b></li>
+        <li>
+          Tap <b>Copy Subject</b>
+        </li>
         <li>
           Tap <b>Paste sticker</b> below, then <b>Paste</b>
         </li>

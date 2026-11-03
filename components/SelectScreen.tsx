@@ -123,7 +123,10 @@ export default function SelectScreen({
         <p className="select-error">
           {error}{" "}
           {prepareFailed && (
-            <button className="link" onClick={() => (setError(null), setPrepareFailed(false), setAttempt((a) => a + 1))}>
+            <button
+              className="link"
+              onClick={() => (setError(null), setPrepareFailed(false), setAttempt((a) => a + 1))}
+            >
               Try again
             </button>
           )}
@@ -138,7 +141,13 @@ export default function SelectScreen({
             ["remove", "− Remove"],
           ] as const
         ).map(([m, label]) => (
-          <button key={m} role="radio" aria-checked={mode === m} className={mode === m ? "on" : undefined} onClick={() => setMode(m)}>
+          <button
+            key={m}
+            role="radio"
+            aria-checked={mode === m}
+            className={mode === m ? "on" : undefined}
+            onClick={() => setMode(m)}
+          >
             {label}
           </button>
         ))}

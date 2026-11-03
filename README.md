@@ -1,4 +1,5 @@
 # Sticker-Camera
+
 A personal camera that turn photos into stickers
 
 ## Run it locally
@@ -33,7 +34,7 @@ Do these once. Nothing here is created automatically.
 
 ### 3. Google sign-in (Google Cloud Console → APIs & Services)
 
-1. **OAuth consent screen:** type *External*. Under *Test users*, add your own Google email.
+1. **OAuth consent screen:** type _External_. Under _Test users_, add your own Google email.
 2. **Credentials → Create credentials → OAuth client ID → Web application.**
    - Authorized JavaScript origins:
      - `https://stickerindex.page`
@@ -49,13 +50,13 @@ Do these once. Nothing here is created automatically.
 
 Set each one for **Production** and **Preview**:
 
-| Name | Value |
-| --- | --- |
-| `AUTH_SECRET` | a random secret: run `npx auth secret` or `openssl rand -base64 33` |
-| `AUTH_GOOGLE_ID` | Google Client ID |
-| `AUTH_GOOGLE_SECRET` | Google Client secret |
-| `OWNER_EMAIL` | your Google email (the only account allowed in) |
-| `AUTH_REDIRECT_PROXY_URL` | `https://stickerindex.page/api/auth` |
+| Name                      | Value                                                               |
+| ------------------------- | ------------------------------------------------------------------- |
+| `AUTH_SECRET`             | a random secret: run `npx auth secret` or `openssl rand -base64 33` |
+| `AUTH_GOOGLE_ID`          | Google Client ID                                                    |
+| `AUTH_GOOGLE_SECRET`      | Google Client secret                                                |
+| `OWNER_EMAIL`             | your Google email (the only account allowed in)                     |
+| `AUTH_REDIRECT_PROXY_URL` | `https://stickerindex.page/api/auth`                                |
 
 `DATABASE_URL` and `BLOB_READ_WRITE_TOKEN` are already there from step 1.
 Then redeploy (Deployments → ⋯ → Redeploy) so the new values are used.

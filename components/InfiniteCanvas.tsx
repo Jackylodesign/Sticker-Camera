@@ -32,7 +32,6 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
   // (Explore button, click outside or Esc) to see the stickers.
   const [aboutOpen, setAboutOpen] = useState(true);
 
-
   useEffect(() => {
     const root = rootRef.current;
     if (!root || ids.length === 0) return;

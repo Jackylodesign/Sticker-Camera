@@ -109,7 +109,10 @@ export default function CameraScreen({
 
       {notice && <p className="notice">{notice}</p>}
       {locationHint && !notice && (
-        <p className="location-hint">Your first photo asks for your location, so each sticker remembers where it was found. Only you see the exact spot.</p>
+        <p className="location-hint">
+          Your first photo asks for your location, so each sticker remembers where it was found. Only you see the exact
+          spot.
+        </p>
       )}
       <ModelStatusBar status={modelStatus} />
 

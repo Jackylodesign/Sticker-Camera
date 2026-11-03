@@ -26,24 +26,28 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .resize(THUMB_MAX_SIDE, THUMB_MAX_SIDE, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 80 })
       .toBuffer();
-    return withCors(new Response(new Uint8Array(thumb), {
-      headers: {
-        "Content-Type": "image/webp",
-        "X-Content-Type-Options": "nosniff",
-        // A sticker never changes, so this browser may keep it for a day.
-        "Cache-Control": "private, max-age=86400",
-      },
-    }));
+    return withCors(
+      new Response(new Uint8Array(thumb), {
+        headers: {
+          "Content-Type": "image/webp",
+          "X-Content-Type-Options": "nosniff",
+          // A sticker never changes, so this browser may keep it for a day.
+          "Cache-Control": "private, max-age=86400",
+        },
+      }),
+    );
   }
 
-  return withCors(new Response(result.stream, {
-    headers: {
-      "Content-Type": "image/png",
-      "X-Content-Type-Options": "nosniff",
-      // Only this browser may cache it; shared caches must not.
-      "Cache-Control": "private, max-age=3600",
-    },
-  }));
+  return withCors(
+    new Response(result.stream, {
+      headers: {
+        "Content-Type": "image/png",
+        "X-Content-Type-Options": "nosniff",
+        // Only this browser may cache it; shared caches must not.
+        "Cache-Control": "private, max-age=3600",
+      },
+    }),
+  );
 }
 
 export function OPTIONS() {

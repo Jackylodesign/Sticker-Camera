@@ -6,13 +6,7 @@ import { Toggle } from "@/components/PreviewScreen";
 import { makeDisplayImage } from "@/lib/display";
 import { errorMessage } from "@/lib/outbox";
 import { releaseCanvas } from "@/lib/photo";
-import {
-  canvasToPngBlob,
-  prepareSticker,
-  renderSticker,
-  type PreparedSticker,
-  type StickerStyle,
-} from "@/lib/sticker";
+import { canvasToPngBlob, prepareSticker, renderSticker, type PreparedSticker, type StickerStyle } from "@/lib/sticker";
 
 export default function StickerDetail({ id, initialPublic }: { id: string; initialPublic: boolean }) {
   const router = useRouter();
