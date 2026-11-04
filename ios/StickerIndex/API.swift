@@ -105,6 +105,7 @@ enum API {
         switch (response as? HTTPURLResponse)?.statusCode {
         case .some(200..<300): return data
         case 401: throw APIError.badToken
+        case 408, 429: throw APIError.offline // temporary: worth retrying
         case .some(500...): throw APIError.offline // the server's fault: worth retrying
         default: throw APIError.rejected
         }

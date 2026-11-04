@@ -39,6 +39,11 @@ final class LibraryModel: ObservableObject {
         waiting = await Outbox.shared.waitingStickers()
     }
 
+    func discard(_ sticker: WaitingSticker) async {
+        await Outbox.shared.discard(sticker.id)
+        await refreshWaiting()
+    }
+
     func thumbnail(for id: String) async -> CGImage? {
         if let saved = thumbnails[id] { return saved }
         guard let token, let data = try? await API.image(id: id, thumbnail: true, token: token) else { return nil }

@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var tokenWasRefused = false
     @State private var step = Step.camera
     @State private var isSaving = false
+    @State private var saveWasRefused = false
     @State private var toast: Toast?
     @Environment(\.scenePhase) private var scenePhase
 
@@ -34,14 +35,6 @@ struct ContentView: View {
                 }
             } else {
                 flow
-                    .task(id: isOnCamera) {
-                        if isOnCamera {
-                            location.refresh()
-                            await camera.start()
-                        } else {
-                            camera.stop()
-                        }
-                    }
                     .overlay(alignment: .bottom) {
                         if let toast, isOnCamera {
                             Hint(text: toast.message, symbol: toast.symbol)
@@ -49,14 +42,29 @@ struct ContentView: View {
                                 .transition(.opacity)
                         }
                     }
+                    .overlay {
+                        // iOS saves a picture of the screen when the app leaves
+                        // the foreground. Cover it so no photo ends up in there.
+                        if scenePhase != .active {
+                            Color.canvas.ignoresSafeArea()
+                        }
+                    }
                     .fullScreenCover(isPresented: $isLibraryOpen) {
                         LibraryScreen(library: library) { isLibraryOpen = false }
                     }
             }
         }
+        .task(id: shouldRunCamera) {
+            if shouldRunCamera {
+                location.refresh()
+                await camera.start()
+            } else {
+                camera.stop()
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { sendWaiting() }
-            guard isOnCamera, token != nil else { return }
+            guard shouldRunCamera else { return }
             if phase == .active {
                 Task { await camera.start() }
             } else if phase == .background {
@@ -68,6 +76,7 @@ struct ContentView: View {
             await library.refresh()
         }
         .task { await watchNetwork() }
+        .task { await retryWaiting() }
         .onChange(of: token) { _, new in library.token = new }
         .onChange(of: library.tokenRefused) { _, refused in
             if refused { forgetToken() }
@@ -130,10 +139,13 @@ struct ContentView: View {
                 takenAt: takenAt,
                 hasPlace: location.current != nil,
                 isSaving: isSaving,
-                onDiscard: backToCamera
+                wasRefused: saveWasRefused,
+                onDiscard: {
+                    saveWasRefused = false
+                    backToCamera()
+                }
             ) {
-                library.latest = display
-                save(clean, takenAt: takenAt)
+                save(clean, display: display, takenAt: takenAt)
             }
         }
     }
@@ -141,6 +153,11 @@ struct ContentView: View {
     private var isOnCamera: Bool {
         if case .camera = step { return true }
         return false
+    }
+
+    /// Off while Library or the token screen covers the camera.
+    private var shouldRunCamera: Bool {
+        token != nil && isOnCamera && !isLibraryOpen
     }
 
     private func backToCamera() {
@@ -165,9 +182,10 @@ struct ContentView: View {
     }
 
     /// Uploads straight from memory. Only if that fails does it touch the disk.
-    private func save(_ clean: CGImage, takenAt: Date) {
+    private func save(_ clean: CGImage, display: CGImage, takenAt: Date) {
         guard let token else { return }
         isSaving = true
+        saveWasRefused = false
         let place = location.current?.coordinate
         let upload = Upload(
             id: UUID().uuidString.lowercased(),
@@ -184,14 +202,20 @@ struct ContentView: View {
             }
             do {
                 try await API.upload(upload, png: png, token: token)
+                library.latest = display
                 show(Toast(symbol: "checkmark", message: "Saved to Library"))
                 sendWaiting()
                 await library.refresh()
+            } catch APIError.rejected {
+                // Trying again later won't help, so don't keep it on the phone.
+                saveWasRefused = true
+                return
             } catch {
                 let isBadToken = (error as? APIError) == .badToken
                 do {
                     try await Outbox.shared.add(upload, png: png)
-                    show(Toast(symbol: "wifi.slash", message: isBadToken ? "Saved for now. Reconnect to upload." : "Will upload when you’re back online"))
+                    library.latest = display
+                    show(Toast(symbol: "arrow.clockwise", message: isBadToken ? "Saved for now. Reconnect to upload." : "Will upload automatically"))
                 } catch {
                     show(Toast(symbol: "exclamationmark.triangle.fill", message: "Couldn’t save this sticker"))
                 }
@@ -211,7 +235,7 @@ struct ContentView: View {
             } catch APIError.badToken {
                 forgetToken()
             } catch {
-                // Still offline. The next launch or reconnect tries again.
+                // Still can't reach the server. retryWaiting() tries again.
             }
         }
     }
@@ -227,6 +251,17 @@ struct ContentView: View {
         Task {
             try? await Task.sleep(for: .seconds(3))
             withAnimation { if toast == message { toast = nil } }
+        }
+    }
+
+    /// Keeps trying while the app is open, in case the server was the problem
+    /// and the connection never changes.
+    private func retryWaiting() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(60))
+            if scenePhase == .active, await Outbox.shared.hasWaiting {
+                sendWaiting()
+            }
         }
     }
 
