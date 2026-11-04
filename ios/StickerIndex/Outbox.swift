@@ -43,13 +43,16 @@ actor Outbox {
         remove(id)
     }
 
-    /// Tries everything waiting. A failure leaves the sticker here for next time.
-    func send(token: String) async throws {
-        guard !isSending else { return }
+    /// Tries everything waiting and returns how many were sent. A failure leaves
+    /// the sticker here for next time.
+    @discardableResult
+    func send(token: String) async throws -> Int {
+        guard !isSending else { return 0 }
         isSending = true
         defer { isSending = false }
 
         removeHalves()
+        var sent = 0
         for file in waiting() {
             guard let details = try? Data(contentsOf: file),
                   let upload = try? JSONDecoder().decode(Upload.self, from: details),
@@ -61,7 +64,9 @@ actor Outbox {
                 continue // this one won't work, but the others might
             }
             remove(upload.id)
+            sent += 1
         }
+        return sent
     }
 
     /// The stickers still waiting, for showing in the Library.

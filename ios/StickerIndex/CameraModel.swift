@@ -15,6 +15,7 @@ final class CameraModel: ObservableObject {
     private let queue = DispatchQueue(label: "camera")
     private var isConfigured = false
     private var pending: PhotoCapture?
+    private var rotation: AVCaptureDevice.RotationCoordinator?
 
     func start() async {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -52,6 +53,13 @@ final class CameraModel: ObservableObject {
         if output.supportedFlashModes.contains(.on), flashOn {
             settings.flashMode = .on
         }
+        // The app stays in portrait, but the photo should follow how the phone is held.
+        if let rotation, let connection = output.connection(with: .video) {
+            let angle = rotation.videoRotationAngleForHorizonLevelCapture
+            if connection.isVideoRotationAngleSupported(angle) {
+                connection.videoRotationAngle = angle
+            }
+        }
         return try await withCheckedThrowingContinuation { continuation in
             let capture = PhotoCapture { [weak self] result in
                 Task { @MainActor in self?.pending = nil }
@@ -73,6 +81,7 @@ final class CameraModel: ObservableObject {
         guard session.canAddInput(input), session.canAddOutput(output) else { return false }
         session.addInput(input)
         session.addOutput(output)
+        rotation = AVCaptureDevice.RotationCoordinator(device: camera, previewLayer: nil)
         return true
     }
 }

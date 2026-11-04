@@ -22,10 +22,8 @@ struct LibraryScreen: View {
                         .accessibilityLabel("Back to camera")
                     }
                 }
-                .navigationDestination(for: String.self) { id in
-                    if let item = library.items.first(where: { $0.id == id }) {
-                        StickerDetailScreen(library: library, item: item)
-                    }
+                .navigationDestination(for: StickerItem.self) { item in
+                    StickerDetailScreen(library: library, item: item)
                 }
         }
         .tint(.white)
@@ -75,7 +73,7 @@ struct LibraryScreen: View {
                         }
                     }
                     ForEach(library.items) { item in
-                        NavigationLink(value: item.id) {
+                        NavigationLink(value: item) {
                             StickerTile(library: library, item: item)
                         }
                         .accessibilityLabel(Text("Sticker, \(item.date, format: .dateTime.day().month().year())"))

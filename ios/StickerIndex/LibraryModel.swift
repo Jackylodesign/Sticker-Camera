@@ -16,8 +16,12 @@ final class LibraryModel: ObservableObject {
         didSet { if token != nil { tokenRefused = false } }
     }
 
-    // In memory only: gone when the app closes.
-    private var thumbnails: [String: CGImage] = [:]
+    // In memory only: gone when the app closes, and the oldest go first if it fills up.
+    private let thumbnails: NSCache<NSString, CGImage> = {
+        let cache = NSCache<NSString, CGImage>()
+        cache.countLimit = 200
+        return cache
+    }()
 
     func refresh() async {
         await refreshWaiting()
@@ -45,10 +49,10 @@ final class LibraryModel: ObservableObject {
     }
 
     func thumbnail(for id: String) async -> CGImage? {
-        if let saved = thumbnails[id] { return saved }
+        if let saved = thumbnails.object(forKey: id as NSString) { return saved }
         guard let token, let data = try? await API.image(id: id, thumbnail: true, token: token) else { return nil }
-        let image = UIImage(data: data)?.cgImage
-        thumbnails[id] = image
+        guard let image = UIImage(data: data)?.cgImage else { return nil }
+        thumbnails.setObject(image, forKey: id as NSString)
         return image
     }
 
@@ -60,11 +64,13 @@ final class LibraryModel: ObservableObject {
     func delete(_ item: StickerItem) async throws {
         guard let token else { return }
         try await API.delete(id: item.id, token: token)
+        let wasNewest = items.first?.id == item.id
         items.removeAll { $0.id == item.id }
-        thumbnails[item.id] = nil
+        thumbnails.removeObject(forKey: item.id as NSString)
+        guard wasNewest else { return }
         latest = nil
         if let first = items.first {
-            latest = await thumbnail(for: first.id)
+            Task { latest = await thumbnail(for: first.id) }
         }
     }
 }
