@@ -14,6 +14,8 @@ export type StickerRow = {
   bytes: number;
   created_at: string;
   is_public: boolean;
+  taken_at: string | null;
+  place_name: string | null;
 };
 
 /** What the public may know about a sticker. Never coordinates, place_name or times. */

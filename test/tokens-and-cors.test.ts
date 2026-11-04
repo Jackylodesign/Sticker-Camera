@@ -89,6 +89,16 @@ describe("token on owner-only routes", () => {
   });
 });
 
+describe("sticker list", () => {
+  it("includes the date and place name, but not coordinates or file paths", async () => {
+    await list.GET(req("GET", `Bearer ${GOOD}`));
+    const select = queries.find((q) => q.text.includes("FROM stickers ORDER BY"))!.text;
+    expect(select).toMatch(/\btaken_at\b/);
+    expect(select).toMatch(/\bplace_name\b/);
+    expect(select).not.toMatch(/\b(lat|lng|pathname|display_pathname)\b/);
+  });
+});
+
 describe("upload with a token (iPhone app)", () => {
   function upload(auth: string) {
     const body = new FormData();
