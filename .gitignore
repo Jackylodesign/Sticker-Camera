@@ -7,3 +7,9 @@ next-env.d.ts
 .DS_Store
 .env
 .env*.local
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+ios/build/
+ios/Config/Local.xcconfig
