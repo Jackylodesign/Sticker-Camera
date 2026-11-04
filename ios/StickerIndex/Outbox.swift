@@ -2,6 +2,11 @@
 // Not in Photos, not in iCloud backups, and deleted as soon as they're uploaded.
 import Foundation
 
+struct WaitingSticker: Identifiable, Sendable {
+    let id: String
+    let png: Data
+}
+
 actor Outbox {
     static let shared = Outbox()
 
@@ -44,6 +49,15 @@ actor Outbox {
             }
             try? FileManager.default.removeItem(at: file)
             try? FileManager.default.removeItem(at: pngURL(upload.id))
+        }
+    }
+
+    /// The stickers still waiting, for showing in the Library.
+    func waitingStickers() -> [WaitingSticker] {
+        waiting().compactMap { file in
+            let id = file.deletingPathExtension().lastPathComponent
+            guard let png = try? Data(contentsOf: pngURL(id)) else { return nil }
+            return WaitingSticker(id: id, png: png)
         }
     }
 

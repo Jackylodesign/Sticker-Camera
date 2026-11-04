@@ -14,6 +14,8 @@ struct ContentView: View {
 
     @StateObject private var camera = CameraModel()
     @StateObject private var location = Location()
+    @StateObject private var library = LibraryModel()
+    @State private var isLibraryOpen = false
     @State private var token = TokenStore.load()
     @State private var tokenWasRefused = false
     @State private var step = Step.camera
@@ -28,6 +30,7 @@ struct ContentView: View {
                     token = connected
                     tokenWasRefused = false
                     sendWaiting()
+                    Task { await library.refresh() }
                 }
             } else {
                 flow
@@ -46,6 +49,9 @@ struct ContentView: View {
                                 .transition(.opacity)
                         }
                     }
+                    .fullScreenCover(isPresented: $isLibraryOpen) {
+                        LibraryScreen(library: library) { isLibraryOpen = false }
+                    }
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -57,13 +63,26 @@ struct ContentView: View {
                 camera.stop()
             }
         }
+        .task {
+            library.token = token
+            await library.refresh()
+        }
         .task { await watchNetwork() }
+        .onChange(of: token) { _, new in library.token = new }
+        .onChange(of: library.tokenRefused) { _, refused in
+            if refused { forgetToken() }
+        }
     }
 
     @ViewBuilder private var flow: some View {
         switch step {
         case .camera:
-            CameraScreen(camera: camera) { photo in
+            CameraScreen(
+                camera: camera,
+                latest: library.latest,
+                hasWaiting: !library.waiting.isEmpty,
+                onLibrary: { isLibraryOpen = true }
+            ) { photo in
                 location.refresh()
                 if let image = upright(photo) {
                     analyze(image)
@@ -113,6 +132,7 @@ struct ContentView: View {
                 isSaving: isSaving,
                 onDiscard: backToCamera
             ) {
+                library.latest = display
                 save(clean, takenAt: takenAt)
             }
         }
@@ -166,6 +186,7 @@ struct ContentView: View {
                 try await API.upload(upload, png: png, token: token)
                 show(Toast(symbol: "checkmark", message: "Saved to Library"))
                 sendWaiting()
+                await library.refresh()
             } catch {
                 let isBadToken = (error as? APIError) == .badToken
                 do {
@@ -174,6 +195,7 @@ struct ContentView: View {
                 } catch {
                     show(Toast(symbol: "exclamationmark.triangle.fill", message: "Couldn’t save this sticker"))
                 }
+                await library.refreshWaiting()
                 if isBadToken { forgetToken() }
             }
             backToCamera()
@@ -185,6 +207,7 @@ struct ContentView: View {
         Task {
             do {
                 try await Outbox.shared.send(token: token)
+                await library.refresh()
             } catch APIError.badToken {
                 forgetToken()
             } catch {
