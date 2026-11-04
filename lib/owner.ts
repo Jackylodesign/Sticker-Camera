@@ -13,7 +13,7 @@ export async function requireOwner(): Promise<Response | null> {
 
 /**
  * Like requireOwner, but also accepts "Authorization: Bearer <token>" (the
- * Figma plugin). If that header is sent, only the token counts, not cookies.
+ * Figma plugin and iPhone app). If that header is sent, only the token counts, not cookies.
  * Use only on the routes listed in isTokenRoute (lib/cors.ts).
  */
 export async function requireOwnerOrToken(request: Request): Promise<Response | null> {

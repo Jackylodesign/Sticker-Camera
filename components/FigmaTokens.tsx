@@ -33,7 +33,7 @@ export default function FigmaTokens({ tokens }: { tokens: TokenInfo[] | null }) 
     });
 
   const revoke = (id: string) => {
-    if (!confirm("Revoke this token? The Figma plugin using it will stop working.")) return;
+    if (!confirm("Revoke this token? Whatever uses it (Figma plugin or iPhone app) will stop working.")) return;
     run(() => revokeToken(id));
   };
 
@@ -45,13 +45,13 @@ export default function FigmaTokens({ tokens }: { tokens: TokenInfo[] | null }) 
 
   return (
     <details className={styles.tokens}>
-      <summary>Figma plugin</summary>
+      <summary>Figma plugin and iPhone app</summary>
       {tokens === null ? (
         <p className={styles.note}>Tokens table is missing. Run the Stage 4 SQL in Neon first.</p>
       ) : (
         <>
           <p className={styles.note}>
-            A token lets the Figma plugin list, insert and delete your stickers. Paste it into the plugin.
+            A token lets the Figma plugin or iPhone app list, upload and delete your stickers. Paste it in once.
           </p>
           {newToken && (
             <div className={styles.new}>

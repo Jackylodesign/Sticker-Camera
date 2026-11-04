@@ -50,6 +50,7 @@ describe("verifyToken", () => {
 describe("isTokenRoute", () => {
   it.each([
     ["GET", "/api/stickers"],
+    ["POST", "/api/stickers"],
     ["OPTIONS", "/api/stickers"],
     ["GET", "/api/stickers/abc/image"],
     ["OPTIONS", "/api/stickers/abc/image"],
@@ -60,7 +61,6 @@ describe("isTokenRoute", () => {
   });
 
   it.each([
-    ["POST", "/api/stickers"],
     ["DELETE", "/api/stickers"],
     ["PATCH", "/api/stickers/abc"],
     ["GET", "/api/stickers/abc"],

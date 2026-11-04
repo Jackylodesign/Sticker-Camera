@@ -36,7 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       )
         return true;
       if (isOwner(auth?.user?.email)) return true;
-      // Figma plugin: a few APIs accept a token instead. Let those requests
+      // Figma plugin and iPhone app: a few APIs accept a token instead. Let those requests
       // (and their CORS preflight) reach the route, which checks the token.
       if (
         isTokenRoute(request.method, pathname) &&

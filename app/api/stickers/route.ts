@@ -4,7 +4,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/config/limits";
 import { preflight, withCors } from "@/lib/cors";
 import { reverseGeocode } from "@/lib/geocode";
 import { parseCoords, parseTakenAt } from "@/lib/meta";
-import { requireOwner, requireOwnerOrToken } from "@/lib/owner";
+import { requireOwnerOrToken } from "@/lib/owner";
 import { readPngSize } from "@/lib/png";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -28,8 +28,9 @@ export function OPTIONS() {
 // made by the app), plus optional `taken_at` (ISO date) and `lat` + `lng`.
 // The app picks the id so that if an upload is retried
 // after a lost connection, it doesn't create a duplicate.
+// Used by the camera page (sign-in) and the iPhone app (token).
 export async function POST(request: Request) {
-  const denied = await requireOwner();
+  const denied = await requireOwnerOrToken(request);
   if (denied) return denied;
 
   let form: FormData;

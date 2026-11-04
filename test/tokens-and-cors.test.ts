@@ -6,6 +6,7 @@ import * as one from "@/app/api/stickers/[id]/route";
 import * as image from "@/app/api/stickers/[id]/image/route";
 import { hashToken } from "@/lib/tokens";
 import { blob, dbAnswers, OWNER, queries, signedInAs } from "./mocks";
+import { pngFile } from "./png";
 
 const GOOD = "sc_good-token";
 const ID = "0b7c2f2e-1111-4222-8333-444455556666";
@@ -86,11 +87,35 @@ describe("token on owner-only routes", () => {
     expect(res.status).toBe(401);
     expect(queries.some((q) => q.text.startsWith("UPDATE stickers"))).toBe(false);
   });
+});
 
-  it("POST refuses a valid token", async () => {
-    const res = await list.POST(req("POST", `Bearer ${GOOD}`));
+describe("upload with a token (iPhone app)", () => {
+  function upload(auth: string) {
+    const body = new FormData();
+    body.append("id", ID);
+    body.append("file", pngFile());
+    return list.POST(
+      new Request("https://stickerindex.page/api/stickers", { method: "POST", headers: { authorization: auth }, body }),
+    );
+  }
+
+  it("saves the sticker with a valid token", async () => {
+    const res = await upload(`Bearer ${GOOD}`);
+    expect(res.status).toBe(201);
+    expect(blob.put).toHaveBeenCalledOnce();
+    expect(queries.some((q) => q.text.startsWith("INSERT INTO stickers"))).toBe(true);
+  });
+
+  it("refuses a wrong token, even when signed in as the owner", async () => {
+    signedInAs(OWNER);
+    const res = await upload("Bearer sc_wrong");
     expect(res.status).toBe(401);
     expect(blob.put).not.toHaveBeenCalled();
+  });
+
+  it("is not open to other websites: no CORS header", async () => {
+    const res = await upload(`Bearer ${GOOD}`);
+    expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 });
 

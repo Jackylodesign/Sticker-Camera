@@ -50,8 +50,9 @@ in Library and paste it again. Revoke tokens you no longer use in Library → Fi
 - The window fetches from `https://stickerindex.page` with
   `Authorization: Bearer <token>`. That domain is the only one allowed in
   `manifest.json` → `networkAccess`.
-- The server accepts the token only on: `GET /api/stickers`,
+- The server accepts the token only on: `GET` and `POST /api/stickers`,
   `GET /api/stickers/[id]/image` (and `?size=thumb`), and `DELETE /api/stickers/[id]`.
+  The plugin doesn't upload; `POST` is for the iPhone app.
   See `requireOwnerOrToken` in `lib/owner.ts` and `isTokenRoute` in `lib/cors.ts`.
 - The border/shadow code in `ui.html` (between `BEGIN GENERATED` and `END GENERATED`)
   is built from `lib/sticker.ts`, so the web app is the only place to change the look.
