@@ -51,6 +51,24 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
   // (Explore button, click outside or Esc) to see the stickers.
   const [aboutOpen, setAboutOpen] = useState(true);
 
+  // The focus ring on the canvas and the Explore button shows only once the
+  // visitor uses the keyboard. Browsers can't tell here: About takes focus on
+  // arrival and hands it to the canvas, so they would draw the ring for everyone.
+  useEffect(() => {
+    const html = document.documentElement;
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.metaKey && !e.ctrlKey && !e.altKey) html.dataset.keyboard = "";
+    };
+    const onPointer = () => delete html.dataset.keyboard;
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("pointerdown", onPointer, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("pointerdown", onPointer, true);
+      delete html.dataset.keyboard;
+    };
+  }, []);
+
   useEffect(() => {
     const root = rootRef.current;
     if (!root || ids.length === 0) return;

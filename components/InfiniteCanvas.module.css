@@ -28,12 +28,13 @@
   -webkit-touch-callout: none;
 }
 
-/* Focus ring drawn above the stickers, with a dark edge so it shows on white ones too. */
+/* Focus ring drawn above the stickers, with a dark edge so it shows on white ones too.
+   Only after a key press: see the data-keyboard effect in InfiniteCanvas.tsx. */
 .canvas:focus-visible {
   outline: none;
 }
 
-.canvas:focus-visible::after {
+:global(html[data-keyboard]) .canvas:focus-visible::after {
   content: "";
   position: absolute;
   inset: 8px;
@@ -222,6 +223,14 @@
 
 .aboutEnter:hover {
   background: #fff;
+}
+
+.aboutEnter:focus-visible {
+  outline: none;
+}
+
+:global(html[data-keyboard]) .aboutEnter:focus-visible {
+  outline: 2px solid var(--color-text);
 }
 
 .aboutPanel .aboutCredit {
