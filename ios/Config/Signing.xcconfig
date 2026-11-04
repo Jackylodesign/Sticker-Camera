@@ -1,0 +1,3 @@
+// Signing settings. The Team ID lives in Local.xcconfig, which is not in git.
+// To build on another Mac, make that file with: DEVELOPMENT_TEAM = <your team id>
+#include? "Local.xcconfig"
