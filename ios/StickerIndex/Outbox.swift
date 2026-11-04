@@ -27,8 +27,20 @@ actor Outbox {
 
         // The sticker first: a details file with no sticker would never finish.
         try png.write(to: pngURL(upload.id), options: [.atomic, .completeFileProtection])
-        let details = try JSONEncoder().encode(upload)
-        try details.write(to: detailsURL(upload.id), options: [.atomic, .completeFileProtection])
+        do {
+            let details = try JSONEncoder().encode(upload)
+            try details.write(to: detailsURL(upload.id), options: [.atomic, .completeFileProtection])
+        } catch {
+            remove(upload.id)
+            throw error
+        }
+    }
+
+    var hasWaiting: Bool { !waiting().isEmpty }
+
+    /// Gives up on a sticker that's waiting. It can't be recovered.
+    func discard(_ id: String) {
+        remove(id)
     }
 
     /// Tries everything waiting. A failure leaves the sticker here for next time.
@@ -37,6 +49,7 @@ actor Outbox {
         isSending = true
         defer { isSending = false }
 
+        removeHalves()
         for file in waiting() {
             guard let details = try? Data(contentsOf: file),
                   let upload = try? JSONDecoder().decode(Upload.self, from: details),
@@ -47,8 +60,7 @@ actor Outbox {
             } catch APIError.rejected {
                 continue // this one won't work, but the others might
             }
-            try? FileManager.default.removeItem(at: file)
-            try? FileManager.default.removeItem(at: pngURL(upload.id))
+            remove(upload.id)
         }
     }
 
@@ -58,6 +70,25 @@ actor Outbox {
             let id = file.deletingPathExtension().lastPathComponent
             guard let png = try? Data(contentsOf: pngURL(id)) else { return nil }
             return WaitingSticker(id: id, png: png)
+        }
+    }
+
+    private func remove(_ id: String) {
+        try? FileManager.default.removeItem(at: pngURL(id))
+        try? FileManager.default.removeItem(at: detailsURL(id))
+    }
+
+    /// A crash can leave a sticker with no details, or details with no sticker.
+    /// Neither can ever be sent, so they shouldn't stay on the phone.
+    private func removeHalves() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        let names = Set(files.map(\.lastPathComponent))
+        for file in files {
+            let id = file.deletingPathExtension().lastPathComponent
+            let partner = file.pathExtension == "png" ? "\(id).json" : "\(id).png"
+            if !names.contains(partner) {
+                try? FileManager.default.removeItem(at: file)
+            }
         }
     }
 

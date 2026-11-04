@@ -4,6 +4,8 @@ struct LibraryScreen: View {
     @ObservedObject var library: LibraryModel
     let onClose: () -> Void
 
+    @State private var stickerToDiscard: WaitingSticker?
+
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 9), count: 3)
 
     var body: some View {
@@ -27,6 +29,18 @@ struct LibraryScreen: View {
                 }
         }
         .tint(.white)
+        .alert(
+            "Waiting to upload",
+            isPresented: Binding(get: { stickerToDiscard != nil }, set: { if !$0 { stickerToDiscard = nil } }),
+            presenting: stickerToDiscard
+        ) { sticker in
+            Button("Keep Waiting", role: .cancel) {}
+            Button("Discard", role: .destructive) {
+                Task { await library.discard(sticker) }
+            }
+        } message: { _ in
+            Text("It uploads by itself when it can. If you discard it, it’s gone for good.")
+        }
         .task { await library.refresh() }
     }
 
@@ -54,7 +68,11 @@ struct LibraryScreen: View {
 
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(library.waiting) { sticker in
-                        WaitingTile(sticker: sticker)
+                        Button {
+                            stickerToDiscard = sticker
+                        } label: {
+                            WaitingTile(sticker: sticker)
+                        }
                     }
                     ForEach(library.items) { item in
                         NavigationLink(value: item.id) {
