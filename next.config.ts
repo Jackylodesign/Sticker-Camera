@@ -8,8 +8,9 @@ const CSP = [
   "default-src 'self'",
   // 'unsafe-inline': Next's own inline scripts (no nonce, see the PR).
   // 'wasm-unsafe-eval' + jsdelivr: the AI models' WebAssembly runtime.
+  // blob:: the runtime loads its generated glue script from a blob: URL.
   // 'unsafe-eval' only in `next dev` (hot reload needs it).
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""} https://cdn.jsdelivr.net`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:${isDev ? " 'unsafe-eval'" : ""} https://cdn.jsdelivr.net`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self'",

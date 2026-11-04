@@ -60,6 +60,7 @@ describe("Content-Security-Policy", () => {
     );
     expect(dir["default-src"]).toEqual(["'self'"]);
     expect(dir["script-src"]).toContain("'wasm-unsafe-eval'");
+    expect(dir["script-src"]).toContain("blob:"); // the AI runtime's glue script
     expect(dir["script-src"]).not.toContain("'unsafe-eval'"); // only in `next dev`
     expect(dir["img-src"]).toEqual(["'self'", "blob:", "data:"]);
     expect(dir["worker-src"]).toEqual(["'self'", "blob:"]);
