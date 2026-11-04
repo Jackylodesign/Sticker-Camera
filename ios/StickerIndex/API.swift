@@ -9,6 +9,17 @@ struct Upload: Codable, Sendable {
     let longitude: Double?
 }
 
+/// One sticker in the Library. No coordinates: the server doesn't send them.
+struct StickerItem: Decodable, Identifiable, Sendable {
+    let id: String
+    let createdAt: Date
+    let takenAt: Date?
+    let placeName: String?
+    let isPublic: Bool
+
+    var date: Date { takenAt ?? createdAt }
+}
+
 enum APIError: Error {
     case badToken
     case offline
@@ -17,12 +28,35 @@ enum APIError: Error {
 
 enum API {
     private static let stickers = URL(string: "https://stickerindex.page/api/stickers")!
+    /// Ephemeral: responses are never cached on disk, so stickers stay off the phone.
+    private static let session = URLSession(configuration: .ephemeral)
 
     /// Throws `badToken` if the server refuses the token, `offline` if it can't be reached.
     static func check(token: String) async throws {
-        var request = URLRequest(url: stickers)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 20
+        try await send(authorized(stickers, token: token))
+    }
+
+    static func stickers(token: String) async throws -> [StickerItem] {
+        let data = try await send(authorized(stickers, token: token))
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let text = try decoder.singleValueContainer().decode(String.self)
+            if let date = try? Date(text, strategy: .iso8601) { return date }
+            return try Date(text, strategy: Date.ISO8601FormatStyle(includingFractionalSeconds: true))
+        }
+        return try decoder.decode([StickerItem].self, from: data)
+    }
+
+    static func image(id: String, thumbnail: Bool, token: String) async throws -> Data {
+        var url = stickers.appendingPathComponent(id).appendingPathComponent("image")
+        if thumbnail { url.append(queryItems: [URLQueryItem(name: "size", value: "thumb")]) }
+        return try await send(authorized(url, token: token))
+    }
+
+    static func delete(id: String, token: String) async throws {
+        var request = authorized(stickers.appendingPathComponent(id), token: token)
+        request.httpMethod = "DELETE"
         try await send(request)
     }
 
@@ -52,15 +86,24 @@ enum API {
         try await send(request)
     }
 
-    private static func send(_ request: URLRequest) async throws {
+    private static func authorized(_ url: URL, token: String) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 20
+        return request
+    }
+
+    @discardableResult
+    private static func send(_ request: URLRequest) async throws -> Data {
+        let data: Data
         let response: URLResponse
         do {
-            (_, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch {
             throw APIError.offline
         }
         switch (response as? HTTPURLResponse)?.statusCode {
-        case .some(200..<300): return
+        case .some(200..<300): return data
         case 401: throw APIError.badToken
         case .some(500...): throw APIError.offline // the server's fault: worth retrying
         default: throw APIError.rejected

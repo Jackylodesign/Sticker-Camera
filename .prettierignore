@@ -5,3 +5,5 @@ package-lock.json
 next-env.d.ts
 # Hand-written HTML with inline JS and CSS; keep it as is.
 figma-plugin/ui.html
+# Xcode writes these files itself.
+ios/

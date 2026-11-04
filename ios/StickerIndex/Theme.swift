@@ -100,3 +100,16 @@ struct MessageScreen: View {
         .background(Color.canvas)
     }
 }
+
+/// Marks a sticker that's saved on the phone but not uploaded yet.
+struct WaitingBadge: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image(systemName: "arrow.clockwise")
+            .font(.system(size: size / 2, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(Color(white: 0.17), in: Circle())
+    }
+}

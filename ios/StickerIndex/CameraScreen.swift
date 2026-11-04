@@ -3,6 +3,9 @@ import SwiftUI
 
 struct CameraScreen: View {
     @ObservedObject var camera: CameraModel
+    let latest: CGImage?
+    let hasWaiting: Bool
+    let onLibrary: () -> Void
     let onPhoto: (UIImage) -> Void
 
     @State private var isCapturing = false
@@ -57,18 +60,54 @@ struct CameraScreen: View {
                         .padding(.bottom, 16)
                 }
 
-                Button(action: takePhoto) {
-                    ZStack {
-                        Circle().strokeBorder(.white, lineWidth: 4)
-                        Circle().fill(.white).padding(7)
+                ZStack {
+                    Button(action: takePhoto) {
+                        ZStack {
+                            Circle().strokeBorder(.white, lineWidth: 4)
+                            Circle().fill(.white).padding(7)
+                        }
+                        .frame(width: 76, height: 76)
                     }
-                    .frame(width: 76, height: 76)
+                    .disabled(isCapturing)
+                    .accessibilityLabel("Take photo")
+
+                    HStack {
+                        Spacer()
+                        libraryButton
+                    }
+                    .padding(.horizontal, 24)
                 }
-                .disabled(isCapturing)
-                .accessibilityLabel("Take photo")
                 .padding(.bottom, 16)
             }
         }
+    }
+
+    private var libraryButton: some View {
+        Button(action: onLibrary) {
+            Group {
+                if let latest {
+                    Image(decorative: latest, scale: 1)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(5)
+                } else {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 52, height: 52)
+            .background(Color(white: 0.12).opacity(0.75), in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.25))
+            }
+            .overlay(alignment: .topTrailing) {
+                if hasWaiting {
+                    WaitingBadge(size: 22).offset(x: 8, y: -8)
+                }
+            }
+        }
+        .accessibilityLabel(hasWaiting ? "Library, stickers waiting to upload" : "Library")
     }
 
     private func takePhoto() {

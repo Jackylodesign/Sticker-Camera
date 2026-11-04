@@ -136,6 +136,16 @@ npm run dev
 Then open http://localhost:3000. On a computer without a camera, use **Choose from library**. Signing in and saving
 need the setup below and a `.env.local` (copy `.env.example`).
 
+## iPhone app
+
+A SwiftUI app in `ios/`, for iOS 17 and later. Take a photo, tap an object and save the sticker to your library. Photos stay in memory and never go to the photo library. A sticker is only written to disk if its upload fails, and is deleted once it's uploaded.
+
+To run it on your iPhone:
+
+1. Make `ios/Config/Local.xcconfig` (not in git) containing `DEVELOPMENT_TEAM = <your Apple team ID>`.
+2. Open `ios/StickerIndex.xcodeproj` in Xcode and press Run.
+3. In Library, generate a token and paste it into the app.
+
 ## Setup (sign-in, storage, database)
 
 Do these once. Nothing here is created automatically.
