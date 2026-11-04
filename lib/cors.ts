@@ -23,13 +23,14 @@ export function preflight(methods: string) {
 
 /**
  * The only requests that may use a token instead of the owner's sign-in:
- * list stickers, get an image (thumb or original), delete a sticker.
+ * list stickers, get an image (thumb or original), delete a sticker, and
+ * upload one (the iPhone app). Upload has no CORS: websites can't call it.
  * OPTIONS (preflight) is included so the browser can ask first.
  * Used by proxy.ts (via auth.ts) to let these through to the route, which
  * then checks the token itself.
  */
 export function isTokenRoute(method: string, pathname: string) {
-  if (pathname === "/api/stickers") return method === "GET" || method === "OPTIONS";
+  if (pathname === "/api/stickers") return method === "GET" || method === "POST" || method === "OPTIONS";
   if (/^\/api\/stickers\/[^/]+\/image$/.test(pathname)) return method === "GET" || method === "OPTIONS";
   if (/^\/api\/stickers\/[^/]+$/.test(pathname)) return method === "DELETE" || method === "OPTIONS";
   return false;

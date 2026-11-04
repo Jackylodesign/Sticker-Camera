@@ -100,6 +100,7 @@ describe("Figma plugin token (Authorization header, no session)", () => {
   // These reach the route, which then checks the token itself.
   it.each([
     ["GET", "/api/stickers"],
+    ["POST", "/api/stickers"],
     ["GET", "/api/stickers/x/image"],
     ["DELETE", "/api/stickers/x"],
   ])("lets %s %s through to the route", (method, path) => {
@@ -107,7 +108,6 @@ describe("Figma plugin token (Authorization header, no session)", () => {
   });
 
   it.each([
-    ["POST", "/api/stickers"],
     ["PATCH", "/api/stickers/x"],
     ["DELETE", "/api/stickers"],
     ["GET", "/api/stickers/x"],
