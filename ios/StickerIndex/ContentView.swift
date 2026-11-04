@@ -1,46 +1,122 @@
 import SwiftUI
 
+/// Camera → choose the object → sticker → back to the camera.
 struct ContentView: View {
-    var body: some View {
-        ZStack {
-            Color(red: 14 / 255, green: 14 / 255, blue: 14 / 255)
-                .ignoresSafeArea()
+    private enum Step {
+        case camera
+        case analyzing(CGImage)
+        case choosing(PhotoAnalysis)
+        case noObject
+        case failed
+        case sticker(CGImage)
+    }
 
-            VStack(spacing: 16) {
-                LogoMark()
-                    .stroke(.white, style: StrokeStyle(lineWidth: 4.4, lineCap: .round, lineJoin: .round))
-                    .frame(width: 44, height: 44)
-                Text("Sticker Index")
-                    .font(.title.bold())
-                Text("Your first iPhone app.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+    @StateObject private var camera = CameraModel()
+    @State private var step = Step.camera
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        Group {
+            switch step {
+            case .camera:
+                CameraScreen(camera: camera) { photo in
+                    if let image = upright(photo) {
+                        analyze(image)
+                    } else {
+                        step = .failed
+                    }
+                }
+            case .analyzing(let photo):
+                ZStack {
+                    Image(decorative: photo, scale: 1)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+                        .ignoresSafeArea()
+                    VStack {
+                        Spacer()
+                        Hint(text: "Finding objects…", busy: true).padding(.bottom, 32)
+                    }
+                }
+            case .choosing(let analysis):
+                ChooseObjectScreen(analysis: analysis, onRetake: backToCamera) { cutout in
+                    step = .sticker((try? StickerStyle.withBorder(cutout)) ?? cutout)
+                }
+            case .noObject:
+                MessageScreen(
+                    symbol: "viewfinder",
+                    title: "No object found",
+                    message: "Move closer, and try a plainer background.",
+                    buttonTitle: "Retake",
+                    action: backToCamera
+                )
+            case .failed:
+                MessageScreen(
+                    symbol: "exclamationmark.triangle.fill",
+                    title: "Couldn’t read the photo",
+                    message: "Something went wrong. Please try again.",
+                    buttonTitle: "Retake",
+                    action: backToCamera
+                )
+            case .sticker(let sticker):
+                StickerScreen(sticker: sticker, onClose: backToCamera)
+            }
+        }
+        .task(id: isOnCamera) {
+            if isOnCamera {
+                await camera.start()
+            } else {
+                camera.stop()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard isOnCamera else { return }
+            if phase == .active {
+                Task { await camera.start() }
+            } else if phase == .background {
+                camera.stop()
             }
         }
     }
-}
 
-/// The Sticker Index mark (a sticker with its corner peeling up). Same drawing as lib/logo.ts.
-struct LogoMark: Shape {
-    func path(in rect: CGRect) -> Path {
-        let unit = rect.width / 24
-        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
-            CGPoint(x: rect.minX + x * unit, y: rect.minY + y * unit)
+    private var isOnCamera: Bool {
+        if case .camera = step { return true }
+        return false
+    }
+
+    private func backToCamera() {
+        step = .camera
+    }
+
+    private func analyze(_ photo: CGImage) {
+        step = .analyzing(photo)
+        Task.detached(priority: .userInitiated) {
+            let next: Step
+            do {
+                if let analysis = try PhotoAnalysis.analyze(photo) {
+                    next = .choosing(analysis)
+                } else {
+                    next = .noObject
+                }
+            } catch {
+                next = .failed
+            }
+            await MainActor.run { step = next }
         }
+    }
 
-        var path = Path()
-        // The sheet, with the top-right corner cut off.
-        path.move(to: point(14, 3))
-        path.addArc(tangent1End: point(3, 3), tangent2End: point(3, 6), radius: 3 * unit)
-        path.addArc(tangent1End: point(3, 21), tangent2End: point(6, 21), radius: 3 * unit)
-        path.addArc(tangent1End: point(21, 21), tangent2End: point(21, 18), radius: 3 * unit)
-        path.addLine(to: point(21, 10))
-        // The corner folded back.
-        path.move(to: point(14, 3))
-        path.addArc(tangent1End: point(14, 10), tangent2End: point(17, 10), radius: 3 * unit)
-        path.addLine(to: point(21, 10))
-        path.closeSubpath()
-        return path
+    /// Turns the photo the right way up and shrinks it to a sensible size.
+    private func upright(_ photo: UIImage) -> CGImage? {
+        let longest: CGFloat = 2048
+        let scale = min(1, longest / max(photo.size.width, photo.size.height))
+        let size = CGSize(width: photo.size.width * scale, height: photo.size.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            photo.draw(in: CGRect(origin: .zero, size: size))
+        }.cgImage
     }
 }
 
