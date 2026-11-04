@@ -10,7 +10,7 @@ struct Upload: Codable, Sendable {
 }
 
 /// One sticker in the Library. No coordinates: the server doesn't send them.
-struct StickerItem: Decodable, Identifiable, Sendable {
+struct StickerItem: Decodable, Identifiable, Hashable, Sendable {
     let id: String
     let createdAt: Date
     let takenAt: Date?

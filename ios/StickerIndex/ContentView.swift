@@ -29,6 +29,7 @@ struct ContentView: View {
             if token == nil {
                 SetupScreen(startWithBadToken: tokenWasRefused) { connected in
                     token = connected
+                    library.token = connected
                     tokenWasRefused = false
                     sendWaiting()
                     Task { await library.refresh() }
@@ -93,20 +94,21 @@ struct ContentView: View {
                 onLibrary: { isLibraryOpen = true }
             ) { photo in
                 location.refresh()
-                if let image = upright(photo) {
-                    analyze(image)
-                } else {
-                    step = .failed
+                Task {
+                    let image = await Task.detached(priority: .userInitiated) { Self.upright(photo) }.value
+                    if let image {
+                        analyze(image)
+                    } else {
+                        step = .failed
+                    }
                 }
             }
         case .analyzing(let photo):
             ZStack {
-                Image(decorative: photo, scale: 1)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                    .ignoresSafeArea()
+                GeometryReader { geometry in
+                    PhotoView(image: photo, size: geometry.size)
+                }
+                .ignoresSafeArea()
                 VStack {
                     Spacer()
                     Hint(text: "Finding objects…", busy: true).padding(.bottom, 32)
@@ -114,7 +116,9 @@ struct ContentView: View {
             }
         case .choosing(let analysis):
             ChooseObjectScreen(analysis: analysis, onRetake: backToCamera) { cutout in
-                let display = (try? StickerStyle.withBorder(cutout)) ?? cutout
+                let display = await Task.detached(priority: .userInitiated) {
+                    (try? StickerStyle.withBorder(cutout)) ?? cutout
+                }.value
                 step = .sticker(display: display, clean: cutout, takenAt: .now)
             }
         case .noObject:
@@ -230,8 +234,9 @@ struct ContentView: View {
         guard let token else { return }
         Task {
             do {
-                try await Outbox.shared.send(token: token)
-                await library.refresh()
+                if try await Outbox.shared.send(token: token) > 0 {
+                    await library.refresh()
+                }
             } catch APIError.badToken {
                 forgetToken()
             } catch {
@@ -242,6 +247,7 @@ struct ContentView: View {
 
     private func forgetToken() {
         TokenStore.clear()
+        isLibraryOpen = false
         tokenWasRefused = true
         token = nil
     }
@@ -279,7 +285,7 @@ struct ContentView: View {
     }
 
     /// Turns the photo the right way up and shrinks it to a sensible size.
-    private func upright(_ photo: UIImage) -> CGImage? {
+    nonisolated private static func upright(_ photo: UIImage) -> CGImage? {
         let longest: CGFloat = 2048
         let scale = min(1, longest / max(photo.size.width, photo.size.height))
         let size = CGSize(width: photo.size.width * scale, height: photo.size.height * scale)

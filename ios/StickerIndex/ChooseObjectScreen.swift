@@ -4,10 +4,11 @@ import SwiftUI
 struct ChooseObjectScreen: View {
     let analysis: PhotoAnalysis
     let onRetake: () -> Void
-    let onUse: (CGImage) -> Void
+    let onUse: (CGImage) async -> Void
 
     @State private var selected: Int?
     @State private var lifted: CGImage?
+    @State private var isPreparing = false
 
     var body: some View {
         ZStack {
@@ -63,26 +64,43 @@ struct ChooseObjectScreen: View {
     }
 
     private func choose(_ object: Int) {
-        guard object != selected, let cutout = try? analysis.cutout(object, cropped: false) else { return }
+        guard object != selected else { return }
         selected = object
-        withAnimation(.easeOut(duration: 0.2)) { lifted = cutout }
+        let analysis = analysis
+        Task {
+            let cutout = await Task.detached(priority: .userInitiated) {
+                try? analysis.cutout(object, cropped: false)
+            }.value
+            // Another tap may have changed the choice while this was working.
+            guard selected == object, let cutout else { return }
+            withAnimation(.easeOut(duration: 0.2)) { lifted = cutout }
+        }
     }
 
     private func use() {
-        guard let selected, let sticker = try? analysis.cutout(selected, cropped: true) else { return }
-        onUse(sticker)
+        guard let selected, !isPreparing else { return }
+        isPreparing = true
+        let analysis = analysis
+        Task {
+            defer { isPreparing = false }
+            let sticker = await Task.detached(priority: .userInitiated) {
+                try? analysis.cutout(selected, cropped: true)
+            }.value
+            if let sticker { await onUse(sticker) }
+        }
     }
 }
 
-/// Draws a photo filling the screen, the same way the camera preview does.
-private struct PhotoView: View {
+/// Draws a photo filling the screen, the same way the camera preview does. A
+/// sideways photo fits inside the screen instead, or most of it would be cut off.
+struct PhotoView: View {
     let image: CGImage
     let size: CGSize
 
     var body: some View {
         Image(decorative: image, scale: 1)
             .resizable()
-            .scaledToFill()
+            .aspectRatio(contentMode: image.width > image.height ? .fit : .fill)
             .frame(width: size.width, height: size.height)
             .clipped()
     }
@@ -91,7 +109,8 @@ private struct PhotoView: View {
     static func normalized(_ location: CGPoint, image: CGImage, size: CGSize) -> CGPoint {
         let imageWidth = CGFloat(image.width)
         let imageHeight = CGFloat(image.height)
-        let scale = max(size.width / imageWidth, size.height / imageHeight)
+        let fit = imageWidth > imageHeight
+        let scale = (fit ? min : max)(size.width / imageWidth, size.height / imageHeight)
         let x = (location.x - (size.width - imageWidth * scale) / 2) / (imageWidth * scale)
         let y = (location.y - (size.height - imageHeight * scale) / 2) / (imageHeight * scale)
         return CGPoint(x: min(max(x, 0), 1), y: min(max(y, 0), 1))
