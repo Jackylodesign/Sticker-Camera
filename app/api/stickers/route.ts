@@ -9,13 +9,14 @@ import { readPngSize } from "@/lib/png";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// List all stickers, newest first. Also used by the Figma plugin (token).
+// List all stickers, newest first. Also used by the Figma plugin and iPhone app
+// (token). Owner only, but still no coordinates or file paths: nothing needs them.
 export async function GET(request: Request) {
   const denied = await requireOwnerOrToken(request);
   if (denied) return withCors(denied);
 
   const rows = (await sql`
-    SELECT id, width, height, bytes, created_at, is_public
+    SELECT id, width, height, bytes, created_at, is_public, taken_at, place_name
     FROM stickers ORDER BY created_at DESC`) as StickerRow[];
   return withCors(Response.json(rows));
 }
