@@ -1,9 +1,13 @@
 import SwiftUI
 
-/// The finished sticker. Saving arrives in the next step of the plan.
+/// The finished sticker, ready to save.
 struct StickerScreen: View {
     let sticker: CGImage
-    let onClose: () -> Void
+    let takenAt: Date
+    let hasPlace: Bool
+    let isSaving: Bool
+    let onDiscard: () -> Void
+    let onSave: () -> Void
 
     var body: some View {
         ZStack {
@@ -11,7 +15,7 @@ struct StickerScreen: View {
 
             VStack(spacing: 16) {
                 HStack {
-                    RoundButton(symbol: "xmark", label: "Discard", action: onClose)
+                    RoundButton(symbol: "xmark", label: "Discard", action: onDiscard)
                     Spacer()
                 }
                 .padding(.horizontal, 24)
@@ -24,16 +28,21 @@ struct StickerScreen: View {
                     .padding(.horizontal, 48)
                     .frame(maxHeight: 440)
 
-                Text(Date.now, format: .dateTime.day().month().year())
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Label {
+                    Text(takenAt, format: .dateTime.day().month().year())
+                } icon: {
+                    if hasPlace {
+                        Image(systemName: "location.fill")
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
 
                 Spacer()
 
-                Text("Saving comes in the next step.")
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
-                PrimaryButton(title: "Done", action: onClose)
+                PrimaryButton(title: isSaving ? "Saving…" : "Save", action: onSave)
+                    .opacity(isSaving ? 0.55 : 1)
+                    .disabled(isSaving)
             }
             .padding(.bottom, 16)
         }
