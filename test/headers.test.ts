@@ -44,14 +44,14 @@ describe("Permissions-Policy", () => {
 });
 
 describe("Content-Security-Policy", () => {
-  it("is report-only for now (warns, never blocks)", async () => {
+  it("is enforced (blocks, not just warns)", async () => {
     const h = await headersFor("/");
-    expect(h.has("content-security-policy")).toBe(false);
-    expect(h.get("content-security-policy-report-only")).toBeTruthy();
+    expect(h.get("content-security-policy")).toBeTruthy();
+    expect(h.has("content-security-policy-report-only")).toBe(false);
   });
 
   it("allows what the app needs and no more", async () => {
-    const csp = (await headersFor("/")).get("content-security-policy-report-only")!;
+    const csp = (await headersFor("/")).get("content-security-policy")!;
     const dir = Object.fromEntries(
       csp.split("; ").map((d) => {
         const [name, ...values] = d.split(" ");

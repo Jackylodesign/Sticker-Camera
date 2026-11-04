@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
 
-// What the browser may load. Sent as "Report-Only" for now: nothing is
-// blocked, the browser just warns in the console. See the PR for when to enforce.
+// What the browser may load; anything else is blocked. Tested report-only first
+// (iPhone, desktop cut-out, Figma plugin) before enforcing.
 const CSP = [
   "default-src 'self'",
   // 'unsafe-inline': Next's own inline scripts (no nonce, see the PR).
@@ -26,7 +26,7 @@ const CSP = [
 ].join("; ");
 
 const securityHeaders = [
-  { key: "Content-Security-Policy-Report-Only", value: CSP },
+  { key: "Content-Security-Policy", value: CSP },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
