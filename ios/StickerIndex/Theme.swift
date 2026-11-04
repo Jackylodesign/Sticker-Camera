@@ -54,11 +54,15 @@ private struct RoundGlass: ViewModifier {
 struct Hint: View {
     let text: String
     var busy = false
+    var symbol: String?
 
     var body: some View {
         HStack(spacing: 10) {
             if busy {
                 ProgressView().controlSize(.small)
+            }
+            if let symbol {
+                Image(systemName: symbol).font(.subheadline.weight(.semibold))
             }
             Text(text).font(.subheadline)
         }

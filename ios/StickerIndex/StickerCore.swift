@@ -104,4 +104,19 @@ enum StickerStyle {
         }
         return output
     }
+
+    /// The clean sticker as a PNG, shrunk if needed to fit the upload limit
+    /// (MAX_UPLOAD_BYTES on the website).
+    static func png(_ cutout: CGImage) -> Data? {
+        let limit = 4 * 1024 * 1024
+        var image = CIImage(cgImage: cutout)
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        for _ in 0..<8 {
+            guard let data = context.pngRepresentation(of: image, format: .RGBA8, colorSpace: space) else { return nil }
+            if data.count <= limit { return data }
+            image = image.transformed(by: CGAffineTransform(scaleX: 0.8, y: 0.8))
+            image = image.transformed(by: CGAffineTransform(translationX: -image.extent.minX, y: -image.extent.minY))
+        }
+        return nil
+    }
 }
