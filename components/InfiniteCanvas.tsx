@@ -8,6 +8,8 @@
 // - One requestAnimationFrame loop moves everything with translate3d. It only
 //   runs while something is moving.
 // - On desktop the grid drifts slightly with the mouse, hinting it can be dragged.
+// - Pinch (or + and - keys) zooms in, up to CANVAS.maxZoom. Never below the
+//   normal size, so zooming never needs more stickers than the first screen.
 // - Keyboard: arrow keys move one cell (Shift: three), Enter opens the middle one.
 // - Screen readers get a plain list of the same stickers instead (the grid
 //   repeats forever, so its images have alt="" and the list names each once).
@@ -19,6 +21,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import LogoMark from "@/components/LogoMark";
 import { useDialog } from "@/components/useDialog";
+import { useZoomableImage } from "@/components/useZoomableImage";
 import { ABOUT } from "@/content/about";
 import { CANVAS } from "@/lib/config/canvas";
 import type { PublicSticker } from "@/lib/db";
@@ -31,6 +34,8 @@ const FRAME = 1000 / 60; // ms
 const TAP_SLOP = 6; // px a pointer may move and still count as a tap
 const REVEAL_TIMEOUT = 5000; // ms: show the grid anyway if images are this slow
 const KEY_EASE = 0.2; // share of the remaining key move done each frame
+const KEY_ZOOM = 1.25; // how much one press of + or - zooms
+const WHEEL_ZOOM = 0.01; // how fast a trackpad pinch zooms
 const ARROWS: Record<string, [number, number]> = {
   ArrowLeft: [-1, 0],
   ArrowRight: [1, 0],
@@ -74,7 +79,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     if (!root || ids.length === 0) return;
 
     const n = ids.length;
-    const pitch = CANVAS.cellSize + CANVAS.gap;
+    const basePitch = CANVAS.cellSize + CANVAS.gap;
     // Which sticker goes in cell (col, row). Each row starts further along the
     // list, so the next row down doesn't repeat the one above.
     const cols = Math.ceil(Math.sqrt(n));
@@ -118,12 +123,18 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     let driftY = 0;
     let kx = 0; // keyboard move still to go, px
     let ky = 0;
+    let zoom = 1;
+    let shownZoom = 1; // the zoom the cells are currently sized for
+    let pitch = basePitch; // these three grow with the zoom
+    let cellSize: number = CANVAS.cellSize;
+    let gap: number = CANVAS.gap;
 
     const buildPool = () => {
       for (const cell of pool) cell.el.remove();
-      // One spare column/row on each side, so swaps happen off screen.
-      poolCols = Math.ceil(root.clientWidth / pitch) + 2;
-      poolRows = Math.ceil(root.clientHeight / pitch) + 2;
+      // One spare column/row on each side, so swaps happen off screen. Sized for
+      // no zoom: that's the most cells the screen can ever need.
+      poolCols = Math.ceil(root.clientWidth / basePitch) + 2;
+      poolRows = Math.ceil(root.clientHeight / basePitch) + 2;
       pool = Array.from({ length: poolCols * poolRows }, () => {
         const el = document.createElement("div");
         el.className = styles.cell;
@@ -137,13 +148,18 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     };
 
     const render = () => {
+      // Real sizes, not a CSS scale: a scaled layer would stay blurry.
+      if (shownZoom !== zoom) {
+        shownZoom = zoom;
+        root.style.setProperty("--cell", `${cellSize}px`);
+      }
       const c0 = Math.floor(-(ox + dx) / pitch) - 1;
       const r0 = Math.floor(-(oy + dy) / pitch) - 1;
       for (let r = r0; r < r0 + poolRows; r++) {
         for (let c = c0; c < c0 + poolCols; c++) {
           const cell = pool[mod(r, poolRows) * poolCols + mod(c, poolCols)];
-          const x = c * pitch + ox + dx + CANVAS.gap / 2;
-          const y = r * pitch + oy + dy + CANVAS.gap / 2;
+          const x = c * pitch + ox + dx + gap / 2;
+          const y = r * pitch + oy + dy + gap / 2;
           cell.el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
           const i = indexAt(c, r);
           if (cell.index !== i) {
@@ -208,8 +224,29 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       if (!raf) raf = requestAnimationFrame(tick);
     };
 
+    // ---------- zoom ----------
+    // Zooms around a point on screen, which stays under the fingers or mouse.
+    const zoomTo = (next: number, x: number, y: number) => {
+      const target = Math.min(CANVAS.maxZoom, Math.max(1, next));
+      const ratio = target / zoom;
+      ox = x - dx - (x - dx - ox) * ratio;
+      oy = y - dy - (y - dy - oy) * ratio;
+      zoom = target;
+      pitch = basePitch * zoom;
+      cellSize = CANVAS.cellSize * zoom;
+      gap = CANVAS.gap * zoom;
+      vx = vy = kx = ky = 0;
+      wake();
+    };
+
     // ---------- drag (mouse + touch) ----------
     let pointerId = -1;
+    const touches = new Map<number, { x: number; y: number }>();
+    let pinch: { distance: number; x: number; y: number } | null = null;
+    const measurePinch = () => {
+      const [a, b] = [...touches.values()];
+      return { distance: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    };
     let startX = 0;
     let startY = 0;
     let lastX = 0;
@@ -219,7 +256,19 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     let samples: { x: number; y: number; t: number }[] = [];
 
     const onDown = (e: PointerEvent) => {
-      if (pointerId !== -1 || (e.pointerType === "mouse" && e.button !== 0)) return; // one finger at a time
+      if (e.pointerType === "touch") {
+        touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (touches.size === 2) {
+          // A second finger turns the drag into a pinch, and it's no longer a tap.
+          root.setPointerCapture(e.pointerId);
+          pinch = measurePinch();
+          pointerId = -1;
+          moved = true;
+          samples = [];
+          return;
+        }
+      }
+      if (pointerId !== -1 || pinch || (e.pointerType === "mouse" && e.button !== 0)) return; // one finger at a time
       pointerId = e.pointerId;
       root.setPointerCapture(pointerId);
       dragging = true;
@@ -248,6 +297,15 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
 
     const onMove = (e: PointerEvent) => {
       onHover(e);
+      if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && touches.size === 2) {
+        const now = measurePinch();
+        ox += now.x - pinch.x;
+        oy += now.y - pinch.y;
+        if (pinch.distance > 0) zoomTo((zoom * now.distance) / pinch.distance, now.x, now.y);
+        pinch = now;
+        return;
+      }
       if (e.pointerId !== pointerId) return;
       ox += e.clientX - lastX;
       oy += e.clientY - lastY;
@@ -261,6 +319,23 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       samples = samples.filter((s) => e.timeStamp - s.t < 100);
     };
     const onUp = (e: PointerEvent) => {
+      touches.delete(e.pointerId);
+      if (pinch) {
+        if (touches.size >= 2) return;
+        pinch = null;
+        // One finger still down: carry on dragging with it, no jump.
+        const [rest] = [...touches];
+        if (rest) {
+          pointerId = rest[0];
+          lastX = rest[1].x;
+          lastY = rest[1].y;
+          return;
+        }
+        dragging = false;
+        root.classList.remove(styles.isDragging);
+        wake();
+        return;
+      }
       if (e.pointerId !== pointerId) return;
       pointerId = -1;
       dragging = false;
@@ -281,8 +356,12 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     // ---------- trackpad / mouse wheel ----------
     // The trackpad already glides on its own, so no extra momentum here.
     const onWheel = (e: WheelEvent) => {
-      e.preventDefault(); // no page scroll, no pinch zoom
-      if (e.ctrlKey) return; // pinch gesture
+      e.preventDefault(); // no page scroll, no page zoom
+      // A trackpad pinch arrives as a wheel with Ctrl held.
+      if (e.ctrlKey) {
+        zoomTo(zoom * Math.exp(-e.deltaY * WHEEL_ZOOM), e.clientX, e.clientY);
+        return;
+      }
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? root.clientHeight : 1;
       ox -= e.deltaX * unit;
       oy -= e.deltaY * unit;
@@ -290,15 +369,30 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       wake();
     };
 
+    // Safari sends a trackpad pinch as its own "gesture" events instead, and
+    // would zoom the whole page on an iPhone. Fingers are handled above.
+    let gestureScale = 1;
+    const onGestureStart = (e: Event) => {
+      e.preventDefault();
+      gestureScale = 1;
+    };
+    const onGestureChange = (e: Event) => {
+      e.preventDefault();
+      if (touches.size > 0) return;
+      const g = e as Event & { scale: number; clientX: number; clientY: number };
+      zoomTo((zoom * g.scale) / gestureScale, g.clientX, g.clientY);
+      gestureScale = g.scale;
+    };
+
     // ---------- tap / click: open one sticker ----------
     const onClick = (e: MouseEvent) => {
       if (moved || stoppedFling) return;
-      const px = e.clientX - ox - dx - CANVAS.gap / 2;
-      const py = e.clientY - oy - dy - CANVAS.gap / 2;
+      const px = e.clientX - ox - dx - gap / 2;
+      const py = e.clientY - oy - dy - gap / 2;
       const c = Math.floor(px / pitch);
       const r = Math.floor(py / pitch);
       // Ignore taps in the gap between cells.
-      if (px - c * pitch > CANVAS.cellSize || py - r * pitch > CANVAS.cellSize) return;
+      if (px - c * pitch > cellSize || py - r * pitch > cellSize) return;
       open(indexAt(c, r));
     };
 
@@ -308,6 +402,11 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     const homeY = () => (root.clientHeight - pitch) / 2;
     const snap = (v: number, home: number) => home + Math.round((v - home) / pitch) * pitch;
     const onKey = (e: KeyboardEvent) => {
+      if ((e.key === "+" || e.key === "=" || e.key === "-") && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        zoomTo(e.key === "-" ? zoom / KEY_ZOOM : zoom * KEY_ZOOM, root.clientWidth / 2, root.clientHeight / 2);
+        return;
+      }
       const dir = ARROWS[e.key];
       if (dir) {
         e.preventDefault();
@@ -367,6 +466,8 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
     root.addEventListener("pointercancel", onUp);
     root.addEventListener("pointerleave", onLeave);
     root.addEventListener("wheel", onWheel, { passive: false });
+    root.addEventListener("gesturestart", onGestureStart);
+    root.addEventListener("gesturechange", onGestureChange);
     root.addEventListener("click", onClick);
     root.addEventListener("keydown", onKey);
     root.addEventListener("contextmenu", noMenu);
@@ -381,6 +482,8 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
       root.removeEventListener("pointercancel", onUp);
       root.removeEventListener("pointerleave", onLeave);
       root.removeEventListener("wheel", onWheel);
+      root.removeEventListener("gesturestart", onGestureStart);
+      root.removeEventListener("gesturechange", onGestureChange);
       root.removeEventListener("click", onClick);
       root.removeEventListener("keydown", onKey);
       root.removeEventListener("contextmenu", noMenu);
@@ -437,7 +540,7 @@ export default function InfiniteCanvas({ stickers }: { stickers: PublicSticker[]
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a custom widget: it takes arrow keys and Enter (see onKey)
           tabIndex={0}
           role="application"
-          aria-label="Sticker canvas. Use arrow keys to move, Enter to open the sticker in the middle"
+          aria-label="Sticker canvas. Use arrow keys to move, plus and minus to zoom, Enter to open the sticker in the middle"
         />
       ) : (
         <div className={`${styles.canvas} ${styles.isReady}`} style={vars}>
@@ -497,7 +600,7 @@ function AboutDialog({ onClose, fallback }: DialogProps) {
   );
 }
 
-// One sticker, big. A click anywhere but the sticker closes it.
+// One sticker, big, and it can zoom in further. A click anywhere but the sticker closes it.
 function StickerDialog({
   url,
   sticker,
@@ -506,7 +609,9 @@ function StickerDialog({
   fallback,
 }: DialogProps & { url: string; sticker: PublicSticker | undefined; style: React.CSSProperties }) {
   const ref = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   useDialog(ref, onClose, fallback);
+  useZoomableImage(ref, imageRef);
   const name = sticker ? stickerName(sticker) : "Sticker";
   return (
     <div ref={ref} className={styles.overlay} style={style} role="dialog" aria-modal="true" aria-label={name}>
@@ -514,7 +619,14 @@ function StickerDialog({
         Close
       </button>
       {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
-      <img src={url} alt={name} draggable={false} data-keep-open onContextMenu={(e) => e.preventDefault()} />
+      <img
+        ref={imageRef}
+        src={url}
+        alt={name}
+        draggable={false}
+        data-keep-open
+        onContextMenu={(e) => e.preventDefault()}
+      />
       <p className={styles.caption}>{caption(sticker)}</p>
     </div>
   );

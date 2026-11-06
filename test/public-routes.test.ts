@@ -21,6 +21,11 @@ describe("GET /api/gallery/[id]/image (public)", () => {
     expect(blob.get).toHaveBeenCalledWith("display/a.png", { access: "private" });
   });
 
+  it("sends a WebP copy as WebP", async () => {
+    dbAnswers(() => [{ display_pathname: "display/a-abc.webp" }]);
+    expect((await open()).headers.get("content-type")).toBe("image/webp");
+  });
+
   it("asks the database only for public stickers with a display copy", async () => {
     await open();
     const [q] = queries;

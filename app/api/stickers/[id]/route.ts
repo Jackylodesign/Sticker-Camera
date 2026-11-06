@@ -1,5 +1,6 @@
 import { del, put } from "@vercel/blob";
-import { DISPLAY_MAX_SIDE } from "@/lib/config/sticker-style";
+import sharp from "sharp";
+import { DISPLAY_MAX_SIDE, DISPLAY_WEBP_QUALITY } from "@/lib/config/sticker-style";
 import { sql } from "@/lib/db";
 import { preflight, withCors } from "@/lib/cors";
 import { reverseGeocode } from "@/lib/geocode";
@@ -7,7 +8,7 @@ import { parseCoords, parseName, parseTakenAt } from "@/lib/meta";
 import { requireOwner, requireOwnerOrToken } from "@/lib/owner";
 import { readPngSize } from "@/lib/png";
 
-const MAX_DISPLAY_BYTES = 2 * 1024 * 1024;
+const MAX_DISPLAY_BYTES = 4 * 1024 * 1024;
 
 // Delete a sticker: its files in Blob (original + gallery copy), then its row.
 // Also used by the Figma plugin (token).
@@ -31,7 +32,7 @@ export function OPTIONS() {
 }
 
 // Make a sticker public or private. A multipart form with:
-//   is_public = "true"  + display = the small PNG (made in the app)
+//   is_public = "true"  + display = the gallery copy as a PNG (made in the app)
 //   is_public = "false" (no file)
 // Or JSON to edit its date and place (see editMeta below).
 // Owner sign-in only: Figma plugin tokens can't call this.
@@ -78,10 +79,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return Response.json({ error: `display must be at most ${DISPLAY_MAX_SIDE}px` }, { status: 400 });
   }
 
+  // Saved as WebP, so it's quick to download. Done here because Safari can't make WebP.
+  let webp: Buffer;
+  try {
+    webp = await sharp(bytes).webp({ quality: DISPLAY_WEBP_QUALITY, alphaQuality: 100 }).toBuffer();
+  } catch {
+    return Response.json({ error: "display is not a valid PNG" }, { status: 415 });
+  }
+
   // Private store, like the originals. A random suffix gives each copy a new name.
-  const blob = await put(`display/${id}.png`, Buffer.from(bytes), {
+  const blob = await put(`display/${id}.webp`, webp, {
     access: "private",
-    contentType: "image/png",
+    contentType: "image/webp",
     addRandomSuffix: true,
   });
   await sql`UPDATE stickers SET is_public = true, display_pathname = ${blob.pathname} WHERE id::text = ${id}`;

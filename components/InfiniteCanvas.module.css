@@ -277,9 +277,12 @@
   user-select: none;
 }
 
-/* Close button on the single-sticker view: same spot and style as About. */
+/* Close button on the single-sticker view: same spot and style as About. It
+   stays above a zoomed sticker, with a shadow so it shows on light ones. */
 .close {
   position: absolute;
+  z-index: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   top: max(16px, env(safe-area-inset-top));
   right: max(16px, env(safe-area-inset-right));
   padding: 12px 8px;
