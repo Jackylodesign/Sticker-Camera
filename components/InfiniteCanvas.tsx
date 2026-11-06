@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import LogoMark from "@/components/LogoMark";
 import { useDialog } from "@/components/useDialog";
+import { useZoomableImage } from "@/components/useZoomableImage";
 import { ABOUT } from "@/content/about";
 import { CANVAS } from "@/lib/config/canvas";
 import type { PublicSticker } from "@/lib/db";
@@ -599,7 +600,7 @@ function AboutDialog({ onClose, fallback }: DialogProps) {
   );
 }
 
-// One sticker, big. A click anywhere but the sticker closes it.
+// One sticker, big, and it can zoom in further. A click anywhere but the sticker closes it.
 function StickerDialog({
   url,
   sticker,
@@ -608,7 +609,9 @@ function StickerDialog({
   fallback,
 }: DialogProps & { url: string; sticker: PublicSticker | undefined; style: React.CSSProperties }) {
   const ref = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   useDialog(ref, onClose, fallback);
+  useZoomableImage(ref, imageRef);
   const name = sticker ? stickerName(sticker) : "Sticker";
   return (
     <div ref={ref} className={styles.overlay} style={style} role="dialog" aria-modal="true" aria-label={name}>
@@ -616,7 +619,14 @@ function StickerDialog({
         Close
       </button>
       {/* eslint-disable-next-line @next/next/no-img-element -- in-memory blob URL; next/image can't load it */}
-      <img src={url} alt={name} draggable={false} data-keep-open onContextMenu={(e) => e.preventDefault()} />
+      <img
+        ref={imageRef}
+        src={url}
+        alt={name}
+        draggable={false}
+        data-keep-open
+        onContextMenu={(e) => e.preventDefault()}
+      />
       <p className={styles.caption}>{caption(sticker)}</p>
     </div>
   );

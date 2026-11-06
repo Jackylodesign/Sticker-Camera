@@ -9,6 +9,9 @@ export const CANVAS = {
   // How far visitors can zoom in. Public copies are limited (DISPLAY_MAX_SIDE),
   // so much higher than this and they start to look soft.
   maxZoom: 2.5,
+  // The same for one opened sticker. Softness is fine here: it's a closer look.
+  stickerMaxZoom: 6,
+  stickerTapZoom: 2.5, // how far a double tap zooms in
   background: "#0e0e0e",
   text: "#ffffff", // top bar text
   friction: 0.95, // glide after a fling: 0 = stops at once, closer to 1 = glides longer
