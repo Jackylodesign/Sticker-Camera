@@ -1,5 +1,6 @@
 // POST /api/stickers (upload) and PATCH /api/stickers/[id] (public/private, edit).
 
+import sharp from "sharp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/stickers/route";
 import { PATCH } from "@/app/api/stickers/[id]/route";
@@ -136,15 +137,25 @@ describe("PATCH public / private", () => {
     expect(updates()).toHaveLength(0);
   });
 
-  it("making public saves a small copy and replaces the old one", async () => {
-    const res = await patchForm({ is_public: "true", display: pngFile(DISPLAY_MAX_SIDE, 300) });
+  it("making public saves a WebP copy, keeps its size and transparency, and replaces the old one", async () => {
+    const png = await sharp({
+      create: { width: DISPLAY_MAX_SIDE, height: 300, channels: 4, background: { r: 200, g: 40, b: 40, alpha: 0.5 } },
+    })
+      .png()
+      .toBuffer();
+    const res = await patchForm({
+      is_public: "true",
+      display: new File([new Uint8Array(png)], "display.png", { type: "image/png" }),
+    });
     expect(res.status).toBe(200);
     expect(blob.put).toHaveBeenCalledWith(
-      `display/${ID}.png`,
+      `display/${ID}.webp`,
       expect.anything(),
-      expect.objectContaining({ access: "private" }),
+      expect.objectContaining({ access: "private", contentType: "image/webp" }),
     );
-    expect(updates()[0].values[0]).toBe(`display/${ID}-abc123.png`);
+    const saved = await sharp((blob.put.mock.calls[0] as unknown[])[1] as Buffer).metadata();
+    expect(saved).toMatchObject({ format: "webp", width: DISPLAY_MAX_SIDE, height: 300, hasAlpha: true });
+    expect(updates()[0].values[0]).toMatch(/^display\/.*\.webp$/);
     expect(blob.del).toHaveBeenCalledWith("display/old.png");
   });
 
@@ -162,7 +173,8 @@ describe("PATCH public / private", () => {
     ["no display file", {}],
     ["a JPEG", { display: new File(["x"], "a.jpg", { type: "image/jpeg" }) }],
     ["fake PNG bytes", { display: new File(["x".repeat(40)], "a.png", { type: "image/png" }) }],
-    ["over 2 MB", { display: pngFile(10, 10, 2 * 1024 * 1024) }],
+    ["a PNG with a real header but broken insides", { display: pngFile(10, 10) }],
+    ["over 4 MB", { display: pngFile(10, 10, 4 * 1024 * 1024) }],
   ])("making public rejects %s", async (_name, fields) => {
     const res = await patchForm({ is_public: "true", ...fields });
     expect([413, 415]).toContain(res.status);

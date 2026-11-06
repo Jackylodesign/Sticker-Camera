@@ -25,7 +25,9 @@ export const TRIM_ALPHA_THRESHOLD = 10;
 
 // ---------- Public gallery ----------
 // Public visitors only ever get this small copy, never the original.
-export const DISPLAY_MAX_SIDE = 600; // px, longest side of the gallery image
+export const DISPLAY_MAX_SIDE = 1200; // px, longest side of the gallery image
+// WebP keeps these light: 1200px at this quality is far smaller than a 600px PNG.
+export const DISPLAY_WEBP_QUALITY = 82;
 
 // Grid thumbnails in the Library (owner only), longest side in px.
 export const THUMB_MAX_SIDE = 400;

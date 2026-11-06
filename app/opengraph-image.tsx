@@ -4,6 +4,7 @@
 
 import { get } from "@vercel/blob";
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 import { CANVAS } from "@/lib/config/canvas";
 import { sql } from "@/lib/db";
 import { LOGO_PATHS, LOGO_VIEWBOX } from "@/lib/logo";
@@ -105,6 +106,8 @@ function Mark({ size }: { size: number }) {
   );
 }
 
+const OG_IMAGE_SIDE = 600; // px
+
 // Newest public stickers' display copies, as data URLs. Empty on any error,
 // so the card still renders (with just the mark).
 async function publicStickerImages(limit: number): Promise<string[]> {
@@ -118,7 +121,9 @@ async function publicStickerImages(limit: number): Promise<string[]> {
       rows.map(async (r) => {
         const res = await get(r.display_pathname, { access: "private" });
         if (res?.statusCode !== 200 || !res.stream) return null;
-        const buf = Buffer.from(await new Response(res.stream).arrayBuffer());
+        const copy = Buffer.from(await new Response(res.stream).arrayBuffer());
+        // ImageResponse needs a PNG, and the card's tiles don't need the full size.
+        const buf = await sharp(copy).resize(OG_IMAGE_SIDE, OG_IMAGE_SIDE, { fit: "inside" }).png().toBuffer();
         return `data:image/png;base64,${buf.toString("base64")}`;
       }),
     );
